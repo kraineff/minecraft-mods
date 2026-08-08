@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Полностью пересобирает галерею Modrinth из screenshots/: удаляет всё, что
-# там сейчас есть, и заливает заново текущие файлы. Проще, чем сравнивать
+# Полностью пересобирает галерею Modrinth из docs/screenshots/: удаляет всё,
+# что там сейчас есть, и заливает заново текущие файлы. Проще, чем сравнивать
 # хеши и решать add/update по отдельности, и даёт тот же результат: новый
 # скриншот появится, а изменённый — заменит старый.
 set -euo pipefail
@@ -41,7 +41,7 @@ done <<<"$existing_urls"
 
 echo "Uploading current screenshots..."
 for i in "${!files[@]}"; do
-	file="screenshots/${files[$i]}"
+	file="docs/screenshots/${files[$i]}"
 	[ -f "$file" ] || { echo "Missing file: $file" >&2; exit 1; }
 
 	featured=false

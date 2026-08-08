@@ -23,7 +23,7 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v6
 
-      # Секция CHANGELOG.md для текущего mod_version — единственный
+      # Секция docs/CHANGELOG.md для текущего mod_version — единственный
       # источник текста changelog для Modrinth (см. README → «Релиз»).
       - name: Extract changelog
         id: changelog
@@ -36,7 +36,7 @@ jobs:
               $0 ~ "^## \\[" ver "\\]" { found=1; next }
               found && /^## \[/ { exit }
               found { print }
-            ' CHANGELOG.md
+            ' docs/CHANGELOG.md
             echo "CHANGELOG_EOF"
           } >> "$GITHUB_OUTPUT"
 

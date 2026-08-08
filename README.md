@@ -6,16 +6,16 @@
 
 <table>
 <tr>
-<td width="50%"><img src="screenshots/field.png" alt="Статы над лошадьми, лучшая обведена" width="100%"></td>
-<td width="50%"><img src="screenshots/field-shift.png" alt="Shift: точные числа после полосок" width="100%"></td>
+<td width="50%"><img src="docs/screenshots/field.png" alt="Статы над лошадьми, лучшая обведена" width="100%"></td>
+<td width="50%"><img src="docs/screenshots/field-shift.png" alt="Shift: точные числа после полосок" width="100%"></td>
 </tr>
 <tr>
 <td align="center"><sub>Статы над лошадьми, лучшая обведена</sub></td>
 <td align="center"><sub>Shift: точные числа после полосок</sub></td>
 </tr>
 <tr>
-<td width="50%"><img src="screenshots/baby-shift.png" alt="Жеребёнок: таймер роста" width="100%"></td>
-<td width="50%"><img src="screenshots/riding.png" alt="Верхом: HUD и лучшая рядом" width="100%"></td>
+<td width="50%"><img src="docs/screenshots/baby-shift.png" alt="Жеребёнок: таймер роста" width="100%"></td>
+<td width="50%"><img src="docs/screenshots/riding.png" alt="Верхом: HUD и лучшая рядом" width="100%"></td>
 </tr>
 <tr>
 <td align="center"><sub>Жеребёнок: таймер роста</sub></td>
@@ -108,8 +108,8 @@ JAR в `.minecraft/mods` рядом с Fabric API. Локальная сборк
 ```
 
 Обновить скриншоты в README и галерее Modrinth — то же самое, но с
-переносом результата в `screenshots/` (Sync: лишнее удаляется, новое и
-изменившееся — перезаписывается):
+переносом результата в `docs/screenshots/` (Sync: лишнее удаляется, новое
+и изменившееся — перезаписывается):
 
 ```bash
 ./gradlew updateScreenshots
@@ -117,14 +117,14 @@ JAR в `.minecraft/mods` рядом с Fabric API. Локальная сборк
 
 ## Релиз
 
-1. В `CHANGELOG.md` перенести пункты из `[Unreleased]` в новый раздел
+1. В `docs/CHANGELOG.md` перенести пункты из `[Unreleased]` в новый раздел
    `[x.y.z] - YYYY-MM-DD`, завести пустой `[Unreleased]` сверху.
 2. Поднять `mod_version` в `gradle.properties`.
 3. Закоммитить, запушить.
 4. Создать GitHub Release с тегом `x.y.z` — workflow
    `publish-modrinth.yml` соберёт JAR под каждую цель из `targets` и
-   опубликует их на Modrinth, changelog — из раздела `CHANGELOG.md` для
-   этой версии.
+   опубликует их на Modrinth: changelog — из раздела `docs/CHANGELOG.md`
+   для этой версии, описание проекта — из `docs/MODRINTH.md`.
 
 ## Как устроено
 

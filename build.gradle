@@ -49,9 +49,9 @@ fabricApi {
 	}
 }
 
-// Прогнать скриншот-тест и разложить результат в screenshots/ (README, галерея
-// Modrinth): ./gradlew updateScreenshots — вместо runClientGameTest + ручной
-// копипасты. Sync, а не Copy — старые файлы без пары в новом прогоне удалятся.
+// Прогнать скриншот-тест и разложить результат в docs/screenshots/ (README,
+// галерея Modrinth): ./gradlew updateScreenshots — вместо runClientGameTest +
+// ручной копипасты. Sync, а не Copy — старые файлы без пары удалятся.
 tasks.register('updateScreenshots', Sync) {
 	dependsOn 'runClientGameTest'
 	from('build/run/clientGameTest/screenshots') {
@@ -60,7 +60,7 @@ tasks.register('updateScreenshots', Sync) {
 		include '*_stallium-*.png'
 		rename { fileName -> fileName.replaceFirst(/^\d+_stallium-/, '') }
 	}
-	into 'screenshots'
+	into 'docs/screenshots'
 }
 
 repositories {
@@ -115,5 +115,7 @@ modrinth {
 	gameVersions = target.modrinth
 	loaders = ['fabric']
 	changelog = providers.gradleProperty('changelog').getOrElse('')
+	syncBodyFrom = rootProject.file('docs/MODRINTH.md').text
 }
 tasks.modrinth.dependsOn(tasks.jar)
+tasks.modrinth.dependsOn(tasks.modrinthSyncBody)
