@@ -1,0 +1,13 @@
+{
+	"key.category.stallium.main": "Stallium",
+	"key.stallium.settings": "Открыть настройки",
+	"screen.stallium.title": "Настройки Stallium",
+	"screen.stallium.show_labels": "Надписи над лошадьми",
+	"screen.stallium.label_radius": "Радиус надписей: %s",
+	"screen.stallium.highlight_best": "Подсветка лучшей",
+	"screen.stallium.show_bars": "Полоски характеристик",
+	"screen.stallium.hover_numbers": "Числа при наведении",
+	"screen.stallium.breeding_hints": "Подсказки для разведения",
+	"modmenu.summaryTranslation.stallium": "Статы лошадей, подсветка лучшей, подсказки разведения и таймеры жеребят.",
+	"modmenu.descriptionTranslation.stallium": "Клиентский помощник по лошадям: полоски скорости, высоты прыжка и здоровья над каждой лошадью, точные числа по прицелу или Shift, золотая подсветка лучшей лошади рядом, подсказки пар для разведения по ванильной формуле потомства, таймер роста жеребят и HUD верхом. Настройки — клавиша H или ModMenu."
+}

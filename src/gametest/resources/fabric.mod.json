@@ -1,0 +1,16 @@
+{
+	"schemaVersion": 1,
+	"id": "stallium-gametest",
+	"version": "1.0.0",
+	"name": "Stallium Gametest",
+	"environment": "client",
+	"license": "MIT",
+	"depends": {
+		"stallium": "*"
+	},
+	"entrypoints": {
+		"fabric-client-gametest": [
+			"com.kraineff.stallium.gametest.StalliumGameTest"
+		]
+	}
+}

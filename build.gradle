@@ -1,0 +1,87 @@
+plugins {
+	id 'net.fabricmc.fabric-loom' version "${loom_version}"
+}
+
+// Сборочные цели: ./gradlew build -PtargetMc=<версия>
+// api      — версия Fabric API под эту версию игры
+// range    — диапазон versions Minecraft для fabric.mod.json
+def targets = [
+	'26.1'           : [api: '0.155.2+26.1.2', range: '>=26.1 <26.2-'],
+	'26.2'           : [api: '0.155.2+26.2', range: '>=26.2 <26.3-'],
+	'26.3-snapshot-5': [api: '0.155.3+26.3', range: '>=26.3- <26.4-'],
+]
+
+def mcVersion = providers.gradleProperty('targetMc').getOrElse(project.target_mc)
+if (!targets.containsKey(mcVersion)) {
+	throw new GradleException("Неизвестная цель '${mcVersion}'. Доступные: ${targets.keySet()}")
+}
+def target = targets[mcVersion]
+
+version = "${project.mod_version}+mc${mcVersion}"
+group = project.maven_group
+
+base {
+	archivesName = 'stallium'
+}
+
+loom {
+	splitEnvironmentSourceSets()
+
+	mods {
+		"stallium" {
+			sourceSet sourceSets.main
+			sourceSet sourceSets.client
+		}
+	}
+}
+
+// Клиентские gametests (скриншот-проверка): ./gradlew runClientGameTest
+fabricApi {
+	configureTests {
+		createSourceSet = true
+		modId = 'stallium-gametest'
+		// серверные gametests не используются — не гонять их при build
+		enableGameTests = false
+	}
+}
+
+repositories {
+	maven {
+		name = 'Terraformers'
+		url = 'https://maven.terraformersmc.com/releases/'
+	}
+}
+
+dependencies {
+	minecraft "com.mojang:minecraft:${mcVersion}"
+	implementation "net.fabricmc:fabric-loader:${project.loader_version}"
+	implementation "net.fabricmc.fabric-api:fabric-api:${target.api}"
+
+	// Только для компиляции интеграции с ModMenu; API стабилен между версиями
+	compileOnly "com.terraformersmc:modmenu:18.0.0"
+}
+
+processResources {
+	def props = [version: project.version, minecraft_range: target.range]
+	inputs.properties props
+
+	filesMatching("fabric.mod.json") {
+		expand props
+	}
+}
+
+tasks.withType(JavaCompile).configureEach {
+	it.options.release = 25
+	it.options.encoding = 'UTF-8'
+}
+
+java {
+	sourceCompatibility = JavaVersion.VERSION_25
+	targetCompatibility = JavaVersion.VERSION_25
+}
+
+jar {
+	from("LICENSE") {
+		rename { "${it}_stallium" }
+	}
+}

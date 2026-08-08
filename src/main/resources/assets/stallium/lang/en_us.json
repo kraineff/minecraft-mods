@@ -1,0 +1,13 @@
+{
+	"key.category.stallium.main": "Stallium",
+	"key.stallium.settings": "Open Settings",
+	"screen.stallium.title": "Stallium Settings",
+	"screen.stallium.show_labels": "Stat labels",
+	"screen.stallium.label_radius": "Label radius: %s",
+	"screen.stallium.highlight_best": "Glow best horse",
+	"screen.stallium.show_bars": "Stat bars",
+	"screen.stallium.hover_numbers": "Numbers when aiming",
+	"screen.stallium.breeding_hints": "Breeding pair hints",
+	"modmenu.summaryTranslation.stallium": "Horse stats, best-horse glow, breeding hints and foal timers.",
+	"modmenu.descriptionTranslation.stallium": "Client-side horse assistant: stat bars for speed, jump height and health above every horse, exact numbers on aim or Shift, a golden glow on the best horse nearby, breeding pair hints based on the vanilla offspring formula, foal growth timers and a riding HUD. Configure with the H key or via ModMenu."
+}

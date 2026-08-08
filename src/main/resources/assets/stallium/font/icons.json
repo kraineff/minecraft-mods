@@ -1,0 +1,12 @@
+{
+	"providers": [
+		{
+			"type": "bitmap",
+			"file": "stallium:font/icons.png",
+			"ascent": 7,
+			"chars": [
+				"\ue000"
+			]
+		}
+	]
+}
