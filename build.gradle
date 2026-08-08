@@ -1,14 +1,18 @@
 plugins {
 	id 'net.fabricmc.fabric-loom' version "${loom_version}"
+	id 'com.modrinth.minotaur' version '2.9.0'
 }
 
 // Сборочные цели: ./gradlew build -PtargetMc=<версия>
 // api      — версия Fabric API под эту версию игры
 // range    — диапазон versions Minecraft для fabric.mod.json
+// modrinth — версии игры для публикации через Minotaur (./gradlew modrinth)
 def targets = [
-	'26.1'           : [api: '0.155.2+26.1.2', range: '>=26.1 <26.2-'],
-	'26.2'           : [api: '0.155.2+26.2', range: '>=26.2 <26.3-'],
-	'26.3-snapshot-5': [api: '0.155.3+26.3', range: '>=26.3- <26.4-'],
+	'26.1'           : [api: '0.155.2+26.1.2', range: '>=26.1 <26.2-', modrinth: ['26.1', '26.1.1', '26.1.2']],
+	'26.2'           : [api: '0.155.2+26.2', range: '>=26.2 <26.3-', modrinth: ['26.2']],
+	// Только последний снапшот 26.3 — билды идентичны, публиковать все не нужно.
+	// Когда выйдет стабильный 26.3, эту цель убрать и завести обычную '26.3'.
+	'26.3-snapshot-7': [api: '0.156.3+26.3', range: '>=26.3- <26.4-', modrinth: ['26.3-snapshot-7']],
 ]
 
 def mcVersion = providers.gradleProperty('targetMc').getOrElse(project.target_mc)
@@ -17,7 +21,7 @@ if (!targets.containsKey(mcVersion)) {
 }
 def target = targets[mcVersion]
 
-version = "${project.mod_version}+mc${mcVersion}"
+version = "${project.mod_version}+${mcVersion}"
 group = project.maven_group
 
 base {
@@ -43,6 +47,20 @@ fabricApi {
 		// серверные gametests не используются — не гонять их при build
 		enableGameTests = false
 	}
+}
+
+// Прогнать скриншот-тест и разложить результат в screenshots/ (README, галерея
+// Modrinth): ./gradlew updateScreenshots — вместо runClientGameTest + ручной
+// копипасты. Sync, а не Copy — старые файлы без пары в новом прогоне удалятся.
+tasks.register('updateScreenshots', Sync) {
+	dependsOn 'runClientGameTest'
+	from('build/run/clientGameTest/screenshots') {
+		// Fabric сохраняет как "0000_stallium-field.png" — числовой префикс
+		// порядка съёмки впереди имени, переданного в takeScreenshot().
+		include '*_stallium-*.png'
+		rename { fileName -> fileName.replaceFirst(/^\d+_stallium-/, '') }
+	}
+	into 'screenshots'
 }
 
 repositories {
@@ -85,3 +103,17 @@ jar {
 		rename { "${it}_stallium" }
 	}
 }
+
+// Публикация: ./gradlew modrinth -PtargetMc=<версия> -Pchangelog=<текст>
+// Токен — из MODRINTH_TOKEN (секрет CI), в репозитории не хранится.
+modrinth {
+	token = System.getenv('MODRINTH_TOKEN')
+	projectId = 'stallium'
+	versionNumber = version
+	versionType = 'release'
+	uploadFile = tasks.named('jar')
+	gameVersions = target.modrinth
+	loaders = ['fabric']
+	changelog = providers.gradleProperty('changelog').getOrElse('')
+}
+tasks.modrinth.dependsOn(tasks.jar)

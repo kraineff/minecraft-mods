@@ -4,10 +4,24 @@
 подсвечивает лучшую золотой обводкой (как от спектральной стрелы) и
 подсказывает пару для разведения.
 
-![Статы над лошадьми, лучшая обведена](screenshots/field.png)
-![Shift: точные числа после полосок](screenshots/field-shift.png)
-![Жеребёнок: таймер роста](screenshots/baby-shift.png)
-![Верхом: HUD и лучшая рядом](screenshots/riding.png)
+<table>
+<tr>
+<td width="50%"><img src="screenshots/field.png" alt="Статы над лошадьми, лучшая обведена" width="100%"></td>
+<td width="50%"><img src="screenshots/field-shift.png" alt="Shift: точные числа после полосок" width="100%"></td>
+</tr>
+<tr>
+<td align="center"><sub>Статы над лошадьми, лучшая обведена</sub></td>
+<td align="center"><sub>Shift: точные числа после полосок</sub></td>
+</tr>
+<tr>
+<td width="50%"><img src="screenshots/baby-shift.png" alt="Жеребёнок: таймер роста" width="100%"></td>
+<td width="50%"><img src="screenshots/riding.png" alt="Верхом: HUD и лучшая рядом" width="100%"></td>
+</tr>
+<tr>
+<td align="center"><sub>Жеребёнок: таймер роста</sub></td>
+<td align="center"><sub>Верхом: HUD и лучшая рядом</sub></td>
+</tr>
+</table>
 
 ## Возможности
 
@@ -65,11 +79,11 @@
 Полностью клиентский мод (на сервер ставить не нужно, работает на любых
 серверах). Требует Fabric Loader ≥ 0.19 и Fabric API.
 
-| Сборка                                  | Minecraft            |
-|-----------------------------------------|----------------------|
-| `stallium-1.0.0+mc26.1.jar`             | 26.1, 26.1.1, 26.1.2 |
-| `stallium-1.0.0+mc26.2.jar`             | 26.2                 |
-| `stallium-1.0.0+mc26.3-snapshot-5.jar`  | 26.3-snapshot-5      |
+| Сборка                                | Minecraft            |
+|---------------------------------------|----------------------|
+| `stallium-1.0.0+26.1.jar`             | 26.1, 26.1.1, 26.1.2 |
+| `stallium-1.0.0+26.2.jar`             | 26.2                 |
+| `stallium-1.0.0+26.3-snapshot-7.jar`  | 26.3-snapshot-7      |
 
 Скачать — на [Modrinth](https://modrinth.com/mod/stallium); положить подходящий
 JAR в `.minecraft/mods` рядом с Fabric API. Локальная сборка — `build/libs/`.
@@ -79,7 +93,7 @@ JAR в `.minecraft/mods` рядом с Fabric API. Локальная сборк
 ```bash
 ./gradlew build                              # цель по умолчанию — 26.1
 ./gradlew build -PtargetMc=26.2
-./gradlew build -PtargetMc=26.3-snapshot-5
+./gradlew build -PtargetMc=26.3-snapshot-7
 ```
 
 Готовые JAR появляются в `build/libs/`. Список целей — мапа `targets`
@@ -92,6 +106,25 @@ JAR в `.minecraft/mods` рядом с Fabric API. Локальная сборк
 ```bash
 ./gradlew runClientGameTest
 ```
+
+Обновить скриншоты в README и галерее Modrinth — то же самое, но с
+переносом результата в `screenshots/` (Sync: лишнее удаляется, новое и
+изменившееся — перезаписывается):
+
+```bash
+./gradlew updateScreenshots
+```
+
+## Релиз
+
+1. В `CHANGELOG.md` перенести пункты из `[Unreleased]` в новый раздел
+   `[x.y.z] - YYYY-MM-DD`, завести пустой `[Unreleased]` сверху.
+2. Поднять `mod_version` в `gradle.properties`.
+3. Закоммитить, запушить.
+4. Создать GitHub Release с тегом `x.y.z` — workflow
+   `publish-modrinth.yml` соберёт JAR под каждую цель из `targets` и
+   опубликует их на Modrinth, changelog — из раздела `CHANGELOG.md` для
+   этой версии.
 
 ## Как устроено
 
