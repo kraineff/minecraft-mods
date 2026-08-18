@@ -12,7 +12,7 @@ def targets = [
 	'26.2'           : [api: '0.155.2+26.2', range: '>=26.2 <26.3-', modrinth: ['26.2']],
 	// Только последний снапшот 26.3 — билды идентичны, публиковать все не нужно.
 	// Когда выйдет стабильный 26.3, эту цель убрать и завести обычную '26.3'.
-	'26.3-snapshot-7': [api: '0.156.3+26.3', range: '>=26.3- <26.4-', modrinth: ['26.3-snapshot-7']],
+	'26.3-snapshot-9': [api: '0.157.2+26.3', range: '>=26.3- <26.4-', modrinth: ['26.3-snapshot-9']],
 ]
 
 def mcVersion = providers.gradleProperty('targetMc').getOrElse(project.target_mc)
