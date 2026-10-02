@@ -1,0 +1,11 @@
+# Структура и процесс
+
+- Мод — `mods/<id>/`, своя сборка Gradle поверх плагина `kraineff.fabric-mod` (`build-logic/`). В `build.gradle` мода — только `plugins { id 'kraineff.fabric-mod' }` и его собственные зависимости; Loom, Fabric API, версии, gametests, Checkstyle и Modrinth живут в плагине. Общая правка сборки — в `build-logic/`, не копией в мод. Устройство мода сверяет `check-project`.
+- Версии — только в `gradle/versions.json` (цели Minecraft с Fabric API, Loader, Loom, Minotaur, Checkstyle, Java) и `gradle/wrapper/` (Gradle). У мода — `mod_version` и `mc_since` в его `gradle.properties`. Версии Minecraft и Fabric API не пишем руками ни в README, ни в workflow: таблицу целей генерирует `npm run sync`, матрицу CI — `scripts/ci.mjs`. Новые версии — скилл `targets`.
+- Один исходный код — все цели: код мода собирается под каждую цель каталога начиная с `mc_since`. API, которого нет в части целей, — в `compat/` через MethodHandle (образец — `ScreenCompat` в stallium), различие записать в `porting.md` скилла `fabric`.
+- Готово — когда собраны все цели задетых модов: `npm run build -- <мод> --all-targets`. Задел рендер, HUD, экраны, миксины или `compat/` — ещё скриншот-тест под первой и последней целью (`./gradlew -p mods/<мод> runClientGameTest -PtargetMc=<цель>`), и снимки посмотреть глазами.
+- Хук завершения хода гоняет `verify-changed`: статические проверки, тесты скриптов, сборку задетых модов (компиляция с gametests и Checkstyle). Ошибки не игнорировать; находку подавлять только комментарием с причиной (скилл `checks`).
+- IMPORTANT: публикация — работа пользователя. Не запускай задачи `modrinth` / `modrinthSyncBody`, `scripts/gallery.mjs` и не создавай GitHub Release — хук перед командой откажет. Релиз готовишь ты: CHANGELOG, `mod_version`, `npm run sync` (скилл `release`).
+- Новая зависимость мода (библиотека, другой мод) — только после согласования с пользователем; `compileOnly` под интеграцию (ModMenu) — норма.
+
+Каркас нового мода — скилл `mod-new`; сборка, цели и Minecraft-версии — скилл `targets`.
