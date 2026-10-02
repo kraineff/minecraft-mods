@@ -1,0 +1,160 @@
+// Сборка Fabric-мода — общая для всех mods/<мод>. Мод подключает её строкой
+// plugins { id 'kraineff.fabric-mod' } и описывает себя в своём gradle.properties:
+//   mod_version — версия мода (JAR и Modrinth — <mod_version>+<цель>);
+//   mc_since    — первая цель Minecraft из gradle/versions.json, с которой мод собирается;
+//   modrinth_id — проект на Modrinth, если он не совпадает с id мода (необязательно).
+// Цели Minecraft, Fabric API под каждую, Loader и Java — общие: gradle/versions.json
+// (обновляет npm run versions). Цель сборки — -PtargetMc=<версия>, по умолчанию последний релиз.
+//
+// Подключено: Loom (раздельные main/client, если есть src/client), Fabric API, клиентские
+// gametests и updateScreenshots (если есть src/gametest), Checkstyle (config/checkstyle),
+// публикация в Modrinth через Minotaur — задача modrinth, её запускает только CI (скилл release).
+
+plugins {
+	id 'java'
+	id 'checkstyle'
+	id 'net.fabricmc.fabric-loom'
+	id 'com.modrinth.minotaur'
+}
+
+def mod = project.name
+
+// Корень монорепозитория — ближайший предок с gradle/versions.json
+File repo = project.rootDir
+while (repo != null && !new File(repo, 'gradle/versions.json').isFile()) {
+	repo = repo.parentFile
+}
+if (repo == null) {
+	throw new GradleException("${mod}: нет gradle/versions.json — мод собирается только внутри монорепозитория (mods/${mod})")
+}
+def versions = new groovy.json.JsonSlurper().parse(new File(repo, 'gradle/versions.json'))
+
+def since = providers.gradleProperty('mc_since').orNull
+def first = versions.targets.findIndexOf { it.minecraft == since }
+if (first < 0) {
+	throw new GradleException("${mod}: mc_since=${since} нет среди целей gradle/versions.json: ${versions.targets*.minecraft}")
+}
+def targets = versions.targets.drop(first)
+// По умолчанию — последний релиз: его открывает IDE и запускает runClient
+def releases = targets.findAll { !it.minecraft.contains('-') }
+def mcVersion = providers.gradleProperty('targetMc').getOrElse((releases ? releases.last() : targets.last()).minecraft)
+def target = targets.find { it.minecraft == mcVersion }
+if (target == null) {
+	throw new GradleException("${mod}: неизвестная цель '${mcVersion}'. Доступные: ${targets*.minecraft}")
+}
+
+version = "${providers.gradleProperty('mod_version').get()}+${mcVersion}"
+group = 'com.kraineff'
+
+base {
+	archivesName = mod
+}
+
+def client = file('src/client').isDirectory()
+
+loom {
+	if (client) {
+		splitEnvironmentSourceSets()
+	}
+
+	mods {
+		register(mod) {
+			sourceSet sourceSets.main
+			if (client) {
+				sourceSet sourceSets.client
+			}
+		}
+	}
+}
+
+if (file('src/gametest').isDirectory()) {
+	// Клиентские gametests (скриншот-проверка): ./gradlew runClientGameTest
+	fabricApi {
+		configureTests {
+			createSourceSet = true
+			modId = "${mod}-gametest".toString()
+			// серверные gametests не используются — не гонять их при build
+			enableGameTests = false
+		}
+	}
+
+	// build компилирует и gametests: их ломают те же изменения API, что и мод
+	tasks.named('check') {
+		dependsOn 'gametestClasses'
+	}
+
+	// Прогнать скриншот-тест и разложить снимки в docs/screenshots/ (README, галерея Modrinth).
+	// Sync, а не Copy — старые файлы без пары удалятся. Fabric сохраняет снимок как
+	// «0000_<мод>-<имя>.png»: номер съёмки впереди имени, переданного в takeScreenshot().
+	tasks.register('updateScreenshots', Sync) {
+		dependsOn 'runClientGameTest'
+		from(layout.buildDirectory.dir('run/clientGameTest/screenshots')) {
+			include "*_${mod}-*.png"
+			rename { String name -> name.replaceFirst(/^\d+_${mod}-/, '') }
+		}
+		into 'docs/screenshots'
+	}
+}
+
+dependencies {
+	minecraft "com.mojang:minecraft:${mcVersion}"
+	implementation "net.fabricmc:fabric-loader:${versions.loader}"
+	implementation "net.fabricmc.fabric-api:fabric-api:${target.fabricApi}"
+}
+
+processResources {
+	def props = [version: project.version.toString(), minecraft_range: target.range]
+	inputs.properties props
+
+	filesMatching('fabric.mod.json') {
+		expand props
+	}
+}
+
+tasks.withType(JavaCompile).configureEach {
+	options.release = versions.java as int
+	options.encoding = 'UTF-8'
+}
+
+java {
+	sourceCompatibility = JavaVersion.toVersion(versions.java)
+	targetCompatibility = JavaVersion.toVersion(versions.java)
+}
+
+jar {
+	// Лицензия мода — его LICENSE, иначе общая из корня
+	from(file('LICENSE').isFile() ? file('LICENSE') : new File(repo, 'LICENSE')) {
+		rename { "${it}_${mod}" }
+	}
+}
+
+checkstyle {
+	toolVersion = versions.checkstyle
+	configFile = new File(repo, 'config/checkstyle/checkstyle.xml')
+	configDirectory = new File(repo, 'config/checkstyle')
+	maxWarnings = 0
+}
+
+// Публикация: ./gradlew modrinth -PtargetMc=<цель> -Pchangelog=<текст> — только из CI
+// (.github/workflows/publish.yml). Токен — MODRINTH_TOKEN (секрет CI), в репозитории не хранится.
+modrinth {
+	token = System.getenv('MODRINTH_TOKEN')
+	projectId = providers.gradleProperty('modrinth_id').getOrElse(mod)
+	versionNumber = project.version.toString()
+	versionType = 'release'
+	uploadFile = tasks.named('jar')
+	gameVersions = target.modrinth
+	loaders = ['fabric']
+	changelog = providers.gradleProperty('changelog').getOrElse('')
+	def body = file('docs/MODRINTH.md')
+	if (body.isFile()) {
+		syncBodyFrom = body.text
+	}
+	dependencies {
+		required.project 'fabric-api'
+	}
+}
+
+tasks.named('modrinth') {
+	dependsOn tasks.named('jar'), tasks.named('modrinthSyncBody')
+}

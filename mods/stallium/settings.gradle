@@ -1,10 +1,13 @@
+// Сборка мода — общая для монорепозитория: плагин kraineff.fabric-mod из build-logic/.
+// Из корня: ./gradlew -p mods/stallium build [-PtargetMc=<цель>]
 pluginManagement {
+	includeBuild '../../build-logic'
+	// Откуда брать Loom и Minotaur — зависимости плагина build-logic
 	repositories {
 		maven {
 			name = 'Fabric'
 			url = 'https://maven.fabricmc.net/'
 		}
-		mavenCentral()
 		gradlePluginPortal()
 	}
 }

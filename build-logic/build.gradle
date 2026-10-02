@@ -1,0 +1,12 @@
+plugins {
+	id 'groovy-gradle-plugin'
+}
+
+// Версии сборочных плагинов живут в gradle/versions.json рядом с целями Minecraft:
+// их показывает и обновляет npm run versions (скилл targets).
+def versions = new groovy.json.JsonSlurper().parse(file('../gradle/versions.json'))
+
+dependencies {
+	implementation "net.fabricmc:fabric-loom:${versions.loom}"
+	implementation "com.modrinth.minotaur:Minotaur:${versions.minotaur}"
+}

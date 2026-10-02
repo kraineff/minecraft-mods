@@ -1,0 +1,14 @@
+// Общая сборка модов: плагин kraineff.fabric-mod (src/main/groovy). Мод подключает её
+// в своём settings.gradle: pluginManagement { includeBuild '../../build-logic' }.
+dependencyResolutionManagement {
+	repositories {
+		maven {
+			name = 'Fabric'
+			url = 'https://maven.fabricmc.net/'
+		}
+		gradlePluginPortal()
+		mavenCentral()
+	}
+}
+
+rootProject.name = 'build-logic'

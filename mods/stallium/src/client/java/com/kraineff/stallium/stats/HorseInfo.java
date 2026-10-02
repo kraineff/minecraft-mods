@@ -12,8 +12,7 @@ import net.minecraft.world.entity.animal.equine.Llama;
  * блоках/сек, высота прыжка в блоках, сводный балл для сравнения особей.
  */
 public record HorseInfo(double speedAttr, double jumpAttr, float maxHealth,
-                        boolean rideable, boolean breedable, boolean baby) {
-
+		boolean rideable, boolean breedable, boolean baby) {
 	// Скорость по земле: б/с = 10.75 × (0.45 + …) = атрибут × 43 (ru.minecraft.wiki/w/Лошадь).
 	public static final double SPEED_TO_BPS = 43.0;
 

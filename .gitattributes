@@ -7,3 +7,9 @@
 # These are Windows script files and should use crlf
 *.bat           text eol=crlf
 
+# Остальной текст — lf: Checkstyle ждёт lf в конце файла
+*.java          text eol=lf
+*.gradle        text eol=lf
+*.json          text eol=lf
+*.mjs           text eol=lf
+*.md            text eol=lf

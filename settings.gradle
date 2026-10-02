@@ -1,0 +1,9 @@
+// Корень — композит всех модов: открыть монорепозиторий в IDE целиком и запускать задачи модов
+// из корня (./gradlew :stallium:runClient). Каждый мод — самостоятельная сборка со своим
+// mods/<мод>/settings.gradle; скрипты и CI зовут его напрямую: ./gradlew -p mods/<мод> <задача>.
+rootProject.name = 'mods'
+
+file('mods').listFiles()
+		.findAll { new File(it, 'settings.gradle').isFile() }
+		.sort { it.name }
+		.each { includeBuild it }

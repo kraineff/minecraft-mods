@@ -1,67 +1,5 @@
 plugins {
-	id 'net.fabricmc.fabric-loom' version "${loom_version}"
-	id 'com.modrinth.minotaur' version '2.9.0'
-}
-
-// Сборочные цели: ./gradlew build -PtargetMc=<версия>
-// api      — версия Fabric API под эту версию игры
-// range    — диапазон versions Minecraft для fabric.mod.json
-// modrinth — версии игры для публикации через Minotaur (./gradlew modrinth)
-def targets = [
-	'26.1'           : [api: '0.155.2+26.1.2', range: '>=26.1 <26.2-', modrinth: ['26.1', '26.1.1', '26.1.2']],
-	'26.2'           : [api: '0.155.2+26.2', range: '>=26.2 <26.3-', modrinth: ['26.2']],
-	'26.3'           : [api: '0.161.0+26.3', range: '>=26.3 <26.4-', modrinth: ['26.3']],
-	// Только последний снапшот 26.4 — билды идентичны, публиковать все не нужно.
-	// Когда выйдет стабильный 26.4, эту цель убрать и завести обычную '26.4'.
-	'26.4-snapshot-2': [api: '0.161.2+26.4', range: '>=26.4- <26.5-', modrinth: ['26.4-snapshot-2']],
-]
-
-def mcVersion = providers.gradleProperty('targetMc').getOrElse(project.target_mc)
-if (!targets.containsKey(mcVersion)) {
-	throw new GradleException("Неизвестная цель '${mcVersion}'. Доступные: ${targets.keySet()}")
-}
-def target = targets[mcVersion]
-
-version = "${project.mod_version}+${mcVersion}"
-group = project.maven_group
-
-base {
-	archivesName = 'stallium'
-}
-
-loom {
-	splitEnvironmentSourceSets()
-
-	mods {
-		"stallium" {
-			sourceSet sourceSets.main
-			sourceSet sourceSets.client
-		}
-	}
-}
-
-// Клиентские gametests (скриншот-проверка): ./gradlew runClientGameTest
-fabricApi {
-	configureTests {
-		createSourceSet = true
-		modId = 'stallium-gametest'
-		// серверные gametests не используются — не гонять их при build
-		enableGameTests = false
-	}
-}
-
-// Прогнать скриншот-тест и разложить результат в docs/screenshots/ (README,
-// галерея Modrinth): ./gradlew updateScreenshots — вместо runClientGameTest +
-// ручной копипасты. Sync, а не Copy — старые файлы без пары удалятся.
-tasks.register('updateScreenshots', Sync) {
-	dependsOn 'runClientGameTest'
-	from('build/run/clientGameTest/screenshots') {
-		// Fabric сохраняет как "0000_stallium-field.png" — числовой префикс
-		// порядка съёмки впереди имени, переданного в takeScreenshot().
-		include '*_stallium-*.png'
-		rename { fileName -> fileName.replaceFirst(/^\d+_stallium-/, '') }
-	}
-	into 'docs/screenshots'
+	id 'kraineff.fabric-mod'
 }
 
 repositories {
@@ -72,51 +10,6 @@ repositories {
 }
 
 dependencies {
-	minecraft "com.mojang:minecraft:${mcVersion}"
-	implementation "net.fabricmc:fabric-loader:${project.loader_version}"
-	implementation "net.fabricmc.fabric-api:fabric-api:${target.api}"
-
 	// Только для компиляции интеграции с ModMenu; API стабилен между версиями
-	compileOnly "com.terraformersmc:modmenu:18.0.0"
+	compileOnly 'com.terraformersmc:modmenu:18.0.0'
 }
-
-processResources {
-	def props = [version: project.version, minecraft_range: target.range]
-	inputs.properties props
-
-	filesMatching("fabric.mod.json") {
-		expand props
-	}
-}
-
-tasks.withType(JavaCompile).configureEach {
-	it.options.release = 25
-	it.options.encoding = 'UTF-8'
-}
-
-java {
-	sourceCompatibility = JavaVersion.VERSION_25
-	targetCompatibility = JavaVersion.VERSION_25
-}
-
-jar {
-	from("LICENSE") {
-		rename { "${it}_stallium" }
-	}
-}
-
-// Публикация: ./gradlew modrinth -PtargetMc=<версия> -Pchangelog=<текст>
-// Токен — из MODRINTH_TOKEN (секрет CI), в репозитории не хранится.
-modrinth {
-	token = System.getenv('MODRINTH_TOKEN')
-	projectId = 'stallium'
-	versionNumber = version
-	versionType = 'release'
-	uploadFile = tasks.named('jar')
-	gameVersions = target.modrinth
-	loaders = ['fabric']
-	changelog = providers.gradleProperty('changelog').getOrElse('')
-	syncBodyFrom = rootProject.file('docs/MODRINTH.md').text
-}
-tasks.modrinth.dependsOn(tasks.jar)
-tasks.modrinth.dependsOn(tasks.modrinthSyncBody)

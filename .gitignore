@@ -1,39 +1,31 @@
-# gradle
+# macOS
+.DS_Store
 
+# Gradle и Loom: кеши и сборки модов и build-logic
 .gradle/
 build/
 out/
-classes/
 
-# eclipse
+# Запуски клиента (миры, настройки, логи) — у каждого мода свои
+mods/*/run/
 
-*.launch
-
-# idea
-
+# IDE
 .idea/
 *.iml
 *.ipr
 *.iws
-
-# vscode
-
-.settings/
 .vscode/
-bin/
+.settings/
 .classpath
 .project
+mods/*/bin/
+build-logic/bin/
 
-# macos
+# Node: зависимостей нет, но на всякий случай; кеш хука начала сессии
+node_modules/
+.cache/
 
-*.DS_Store
-
-# fabric
-
-run/
-
-# java
-
+# Java
 hs_err_*.log
 replay_*.log
 *.hprof
