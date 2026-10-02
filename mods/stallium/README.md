@@ -128,11 +128,11 @@ npm run build -- stallium --all-targets              # все цели подр�
    `[x.y.z] - YYYY-MM-DD`, завести пустой `[Unreleased]` сверху.
 2. Поднять `mod_version` в `gradle.properties`, затем `npm run sync`
    (имена JAR в таблице версий).
-3. Закоммитить, запушить.
-4. Создать GitHub Release с тегом `stallium/x.y.z` — workflow `publish.yml`
-   соберёт JAR под каждую цель мода и опубликует их на Modrinth: changelog —
-   из раздела `docs/CHANGELOG.md` для этой версии, описание проекта — из
-   `docs/MODRINTH.md`, галерея — из `docs/gallery.json` и `docs/screenshots/`.
+3. Закоммитить и запушить в `main` — CI (`ci.yml`) заметит выросшую версию и
+   после зелёных проверок опубликует JAR под каждую цель на Modrinth:
+   changelog — из раздела `docs/CHANGELOG.md` этой версии, описание проекта —
+   из `docs/MODRINTH.md`, галерея — из `docs/gallery.json` и
+   `docs/screenshots/`; затем создаст тег `stallium/x.y.z` и GitHub Release.
 
 ## Как устроено
 

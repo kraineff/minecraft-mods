@@ -14,19 +14,13 @@
 
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
-import { modProperties } from '../lib/repo.mjs';
+import { compareSemver, modProperties } from '../lib/repo.mjs';
 import { read, runCli, selectMods, unsuppressed } from './lib/cli.mjs';
 
 const NAME = 'changelog';
 const SECTIONS = new Set(['Added', 'Changed', 'Deprecated', 'Removed', 'Fixed', 'Security']);
 const RELEASE = /^## \[(\d+\.\d+\.\d+)\] - (\d{4}-\d{2}-\d{2})$/;
 const CYRILLIC = /[А-Яа-яЁё]/;
-
-const semverCompare = (a, b) => {
-  const [x, y] = [a.split('.').map(Number), b.split('.').map(Number)];
-  for (let k = 0; k < 3; k++) if (x[k] !== y[k]) return x[k] - y[k];
-  return 0;
-};
 
 /** Находки в тексте CHANGELOG: `[{ line, text }]`; `version` — mod_version мода. */
 export function checkChangelog(text, version) {
@@ -56,7 +50,7 @@ export function checkChangelog(text, version) {
       if (!unreleasedSeen) problems.push({ line, text: 'первым разделом — ## [Unreleased]' });
       if (Number.isNaN(Date.parse(match[2]))) problems.push({ line, text: `дата ${match[2]} не читается` });
       const previous = releases.at(-1);
-      if (previous && semverCompare(previous.version, match[1]) <= 0) {
+      if (previous && compareSemver(previous.version, match[1]) <= 0) {
         problems.push({ line, text: `версии — по убыванию: ${match[1]} после ${previous.version}` });
       }
       releases.push({ version: match[1], line });
@@ -76,7 +70,7 @@ export function checkChangelog(text, version) {
   if (!unreleasedSeen) problems.push({ line: 1, text: 'нет раздела ## [Unreleased]' });
   const latest = releases[0];
   if (version && latest && latest.version !== version) {
-    const why = semverCompare(version, latest.version) > 0 ? 'нет раздела для неё' : 'она отстала от раздела';
+    const why = compareSemver(version, latest.version) > 0 ? 'нет раздела для неё' : 'она отстала от раздела';
     problems.push({ line: latest.line, text: `mod_version=${version}, последний раздел — ${latest.version}: ${why}` });
   }
   return problems;

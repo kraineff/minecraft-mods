@@ -74,6 +74,7 @@ test('дефекты мода находятся', async () => {
   const modJson = JSON.parse(read('mods/demo/src/main/resources/fabric.mod.json'));
   modJson.id = 'other';
   modJson.depends.minecraft = '>=26.3';
+  modJson.contact.sources = 'https://github.com/kraineff/stallium';
   write('mods/demo/src/main/resources/fabric.mod.json', JSON.stringify(modJson, null, '\t'));
   write('mods/demo/gradle.properties', read('mods/demo/gradle.properties').replace('mod_version=0.1.0', 'mod_version=0.2.0'));
 
@@ -84,5 +85,6 @@ test('дефекты мода находятся', async () => {
   has(/^project: mods\/demo\/build\.gradle: плагин Loom — уже в kraineff\.fabric-mod/);
   has(/^modjson: .*fabric\.mod\.json: id «other»/);
   has(/^modjson: .*depends\.minecraft — "\$\{minecraft_range\}"/);
+  has(/^modjson: .*contact\.sources — "https:\/\/github\.com\/kraineff\/minecraft-mods\/tree\/main\/mods\/demo"/);
   has(/^targets: mods\/demo\/README\.md: блок целей отстал/);
 });

@@ -43,6 +43,6 @@ npm run new-mod -- <id> "<Название>" [--client]
 2. `./gradlew -p mods/<id> runClient` — запуск клиента с модом (смотрит пользователь).
 3. Коммит `feat(<id>): Добавить мод <Название>`.
 
-## 6. Публикация (делает пользователь)
+## 6. Публикация
 
-Проект на Modrinth с slug = id мода (иначе — `modrinth_id=<slug>` в `gradle.properties`), секрет `MODRINTH_TOKEN` в репозитории GitHub — уже общий. Первый релиз — скилл `release`.
+Пока у мода нет `modrinth_id`, CI его только собирает. Когда пользователь завёл проект на Modrinth — `modrinth_id=<slug>` в `gradle.properties` (каркас оставил строку закомментированной), `contact.homepage` в `fabric.mod.json` — страница проекта; секрет `MODRINTH_TOKEN` в репозитории общий. Первый релиз — скилл `release`.

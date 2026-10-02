@@ -1,31 +1,38 @@
 ---
 name: release
-description: Релиз мода на Modrinth — подготовка (раздел CHANGELOG, mod_version, npm run sync, коммит и пуш), что делает пользователь (GitHub Release с тегом <мод>/<x.y.z>), что делает CI (.github/workflows/publish.yml — сборка всех целей, changelog, описание, галерея), версии мода по semver, первый релиз нового мода. Используется, когда пользователь просит выпустить или опубликовать версию, «зарелизь», «выложи на Modrinth», и при правке publish.yml, scripts/ci.mjs, scripts/gallery.mjs.
+description: Релиз мода на Modrinth — как CI публикует сам (ci.yml: мод с modrinth_id, у которого за пуш в main выросла mod_version, после зелёных проверок и сборок того же прогона), подготовка релиза (раздел CHANGELOG, mod_version по semver, npm run sync), подтверждение пользователя перед пушем с бампом, что делает CI (JAR под каждую цель, ссылки, описание и галерея проекта, тег и GitHub Release), повтор и ручной запуск, пробный прогон, первый релиз нового мода. Используется, когда пользователь просит выпустить или опубликовать версию, «зарелизь», «выложи на Modrinth», и при правке ci.yml, scripts/ci.mjs, scripts/modrinth.mjs.
 ---
 
 # Релиз
 
-Публикует пользователь: GitHub Release запускает CI, а CI пишет на Modrinth от его имени. Хук перед командой не даст модели запустить `modrinth`, `scripts/gallery.mjs` или `gh release create`.
+**Поднять `mod_version` — значит опубликовать.** Пуш в `main`, после которого у мода с `modrinth_id` выросла версия, CI сам выкладывает на Modrinth. Поэтому версию поднимаю только по просьбе пользователя выпустить релиз; хук перед `git push` всё равно спросит у него подтверждение («этот пуш опубликует …»). Задачи `modrinth`, `scripts/modrinth.mjs sync` и `gh release create` сам не запускаю — хук откажет.
 
-## Готовит Claude
+## Подготовка (Claude)
 
-1. **Версия** — semver: исправления — patch (`1.0.1`), новые возможности и новые версии Minecraft — minor (`1.1.0`), несовместимые изменения (настройки, конфиг) — major.
-2. `mods/<мод>/docs/CHANGELOG.md`: пункты из `[Unreleased]` — в новый раздел `## [x.y.z] - YYYY-MM-DD`, сверху — пустой `## [Unreleased]`. Текст — для игроков, по-английски.
-3. `mod_version=x.y.z` в `mods/<мод>/gradle.properties`, затем `npm run sync` — имена JAR в таблице версий README.
-4. `npm run verify:changed` и `npm run build -- <мод> --all-targets` — все цели собираются; `check-changelog` сверит раздел с `mod_version`.
-5. Коммит `chore(<мод>): Выпустить x.y.z`, пуш.
-6. Сказать пользователю, что создать: GitHub Release с тегом **`<мод>/x.y.z`** (например `stallium/1.1.0`) на ветке `main`; текст релиза можно взять из раздела CHANGELOG.
+1. **Версия** — semver: исправления — patch (`1.0.1`), новые возможности и новые версии Minecraft — minor (`1.1.0`), несовместимое (настройки, конфиг) — major.
+2. `mods/<мод>/docs/CHANGELOG.md`: пункты `[Unreleased]` — в раздел `## [x.y.z] - YYYY-MM-DD`, сверху — пустой `## [Unreleased]`. Текст — для игроков, по-английски; он уходит и на Modrinth, и в GitHub Release.
+3. `mod_version=x.y.z` в `mods/<мод>/gradle.properties`, затем `npm run sync` — имена JAR в таблице README.
+4. Описание и галерея — то, что увидят на странице проекта: `docs/MODRINTH.md`, `docs/gallery.json` и `docs/screenshots/` (обновить — `./gradlew -p mods/<мод> updateScreenshots`, посмотреть снимки).
+5. `npm run verify:changed` и `npm run build -- <мод> --all-targets`; `check-changelog` сверит раздел с `mod_version`.
+6. Коммит `chore(<мод>): Выпустить x.y.z` и пуш — хук спросит подтверждение у пользователя.
 
-## Делает CI (`publish.yml`)
+Пробный прогон без записи: `./gradlew -p mods/<мод> modrinth -PmodrinthDryRun -PtargetMc=<цель> -Pchangelog="…"` — Minotaur покажет, что отправил бы; `node scripts/modrinth.mjs sync <мод> --dry-run` — что поменяется в проекте.
 
-1. `node scripts/ci.mjs release <тег>` — разбирает тег, сверяет версию с `mod_version` (не совпало — падает до сборки), даёт цели мода из каталога.
-2. По цели на задачу: `./gradlew -p mods/<мод> modrinth -PtargetMc=<цель> -Pchangelog=<раздел>` — Minotaur загружает `<мод>-x.y.z+<цель>.jar` с версиями игры `modrinth` цели, зависимостью Fabric API и синхронизирует описание проекта из `docs/MODRINTH.md`.
-3. `node scripts/gallery.mjs <мод>` — галерея проекта пересобирается из `docs/gallery.json` и `docs/screenshots/` (первая картинка — featured).
+## Что делает CI (`ci.yml`)
 
-Токен — секрет репозитория `MODRINTH_TOKEN` (Modrinth PAT с правами на создание версий и правку проекта). Проект на Modrinth — slug = id мода, иначе `modrinth_id` в `gradle.properties` мода.
+План — `node scripts/ci.mjs plan`: публикуются моды с `modrinth_id`, у которых `mod_version` выросла против прежней вершины `main` (бамп не последним коммитом пуша тоже считается; понижение — нет), и только если проверки и сборки этого прогона зелёные.
 
-## Если что-то пошло не так
+1. **publish** — по задаче на цель мода: уже выложенная версия пропускается (`scripts/modrinth.mjs published`), иначе `./gradlew -p mods/<мод> modrinth -PtargetMc=<цель> -Pchangelog=<раздел>` — Minotaur загружает `<мод>-x.y.z+<цель>.jar` с версиями игры из `modrinth` цели и зависимостью Fabric API.
+2. **release** — один раз на мод: `scripts/modrinth.mjs sync` приводит проект к репозиторию (ссылки на исходники и трекер из `contact` в `fabric.mod.json`, описание из `docs/MODRINTH.md`, галерея — пересобирается, только если подписи разошлись или скриншоты менялись с прошлого тега), затем тег `<мод>/x.y.z` и GitHub Release с JAR всех целей и changelog.
 
-- План упал на версии — `mod_version` не поднят или тег не тот: поправить и пересоздать релиз (пользователь).
-- Упала одна цель — остальные могли опубликоваться: версию для упавшей цели пользователь перевыпускает из Actions (`Re-run failed jobs`) после исправления в той же версии, без нового тега, если код не менялся; если менялся — новая patch-версия.
-- Скриншоты для галереи обновляются заранее: `./gradlew -p mods/<мод> updateScreenshots`, глазами посмотреть `docs/screenshots/`, закоммитить.
+Токен — секрет репозитория `MODRINTH_TOKEN` (PAT Modrinth с правами на версии и правку проекта).
+
+## Повтор и ручной запуск
+
+- Упала цель — исправить и перезапустить прогон (`Re-run failed jobs`): выложенные цели пропускаются, релиз создастся, когда все цели на месте.
+- Выложить версию, которая уже в репозитории (новый мод, ручная правка на Modrinth), — Actions → ci → Run workflow, поле `publish` = мод.
+
+## Первый релиз нового мода
+
+1. Пользователь заводит проект на Modrinth (slug), в `gradle.properties` мода — `modrinth_id=<slug>`; `check-modjson` потребует `contact.homepage` = страница проекта.
+2. Подготовка по шагам выше и пуш с бампом — или ручной запуск с `publish`, если версия уже стоит.

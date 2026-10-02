@@ -24,6 +24,7 @@ import { join } from 'node:path';
 import { isMain } from './checks/lib/cli.mjs';
 import {
   compareMinecraft,
+  compareSemver,
   isPrerelease,
   lineOf,
   modDirs,
@@ -51,15 +52,6 @@ const HEADERS = { 'user-agent': 'kraineff/minecraft-mods (scripts/versions.mjs)'
 const TIMEOUT_MS = 20_000;
 
 // ===== Чистая логика (тесты — scripts/tests/versions.test.mjs) =====
-
-/** Сравнение версий вида x.y.z (у Fabric API — часть до `+`). */
-export function compareSemver(a, b) {
-  const [x, y] = [a.split('+')[0].split('.').map(Number), b.split('+')[0].split('.').map(Number)];
-  for (let k = 0; k < Math.max(x.length, y.length); k++) {
-    if ((x[k] ?? 0) !== (y[k] ?? 0)) return (x[k] ?? 0) - (y[k] ?? 0);
-  }
-  return 0;
-}
 
 /** Последняя сборка Fabric API для версии Minecraft из списка Modrinth (новые первыми). */
 export function latestApi(apiVersions, minecraft) {

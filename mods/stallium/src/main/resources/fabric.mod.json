@@ -8,7 +8,9 @@
 		"Kraineff"
 	],
 	"contact": {
-		"homepage": "https://modrinth.com/mod/stallium"
+		"homepage": "https://modrinth.com/mod/stallium",
+		"sources": "https://github.com/kraineff/minecraft-mods/tree/main/mods/stallium",
+		"issues": "https://github.com/kraineff/minecraft-mods/issues"
 	},
 	"license": "MIT",
 	"icon": "assets/stallium/icon.png",

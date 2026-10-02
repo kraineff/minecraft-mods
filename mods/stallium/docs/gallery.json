@@ -19,6 +19,11 @@
 			"file": "riding.png",
 			"title": "Riding HUD",
 			"description": "Your mount's stats above the hotbar while riding"
+		},
+		{
+			"file": "settings.png",
+			"title": "Settings screen",
+			"description": "Labels, radius, best-horse outline, bars, hover numbers and breeding hints — open with H or from Mod Menu"
 		}
 	]
 }

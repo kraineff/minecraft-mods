@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
+import { compareSemver } from '../lib/repo.mjs';
 import {
   applyTargets,
-  compareSemver,
   describe,
   formatCatalog,
   latestApi,

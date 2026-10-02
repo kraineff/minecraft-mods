@@ -47,9 +47,11 @@ npm run new-mod -- horse-tweaks "Horse Tweaks" [--client]
 
 ## Релиз
 
+Публикует CI: пуш в `main`, после которого у мода с `modrinth_id` выросла `mod_version`, выкладывает этот мод на Modrinth — после зелёных проверок и сборок того же прогона.
+
 1. В `mods/<id>/docs/CHANGELOG.md` — раздел `[x.y.z] - YYYY-MM-DD` из `[Unreleased]`; `mod_version` в `gradle.properties`; `npm run sync`.
-2. Коммит и пуш.
-3. GitHub Release с тегом `<id>/x.y.z` — `publish.yml` соберёт JAR под каждую цель мода и опубликует на Modrinth: changelog из раздела CHANGELOG, описание из `docs/MODRINTH.md`, галерею из `docs/gallery.json`. Токен — секрет `MODRINTH_TOKEN`.
+2. Коммит и пуш в `main`.
+3. CI (`ci.yml`) соберёт и загрузит JAR под каждую цель мода (changelog — раздел CHANGELOG), приведёт проект к репозиторию (ссылки, описание из `docs/MODRINTH.md`, галерея из `docs/gallery.json`) и создаст тег `<id>/x.y.z` с GitHub Release. Повтор прогона безопасен, ручной запуск с полем `publish` перевыкладывает версию из репозитория. Токен — секрет `MODRINTH_TOKEN`.
 
 ## Как устроено
 
@@ -58,7 +60,7 @@ npm run new-mod -- horse-tweaks "Horse Tweaks" [--client]
 ├── build-logic/           — плагин сборки kraineff.fabric-mod (Loom, цели, Fabric API, gametests, Checkstyle, Modrinth)
 ├── gradle/versions.json   — каталог версий для всех модов
 ├── config/checkstyle/     — стиль Java
-├── scripts/               — версии, сборка по целям, проверки, CI, каркас мода, галерея Modrinth
+├── scripts/               — версии, сборка по целям, проверки, план CI, каркас мода, проект Modrinth
 ├── .claude/               — правила, скиллы и хуки Claude Code
-└── .github/workflows/     — ci.yml и publish.yml
+└── .github/workflows/     — ci.yml: проверки, сборка и публикация
 ```

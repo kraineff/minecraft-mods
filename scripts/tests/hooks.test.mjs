@@ -4,18 +4,24 @@ import { classify, commitCount } from '../../.claude/hooks/before-bash.mjs';
 import { commitMessage, subjectProblems } from '../commit-message.mjs';
 import { endsWithQuestion, offerToRecord, todoCounts, unrecordedOffer } from '../journals.mjs';
 
-test('before-bash: публикация — отказ, упоминание в тексте — мимо', () => {
+test('before-bash: публикация — отказ, пробный прогон и упоминание в тексте — мимо', () => {
   assert.equal(classify('./gradlew -p mods/stallium modrinth -PtargetMc=26.3').kind, 'forbidden');
   assert.equal(classify('cd x && ../../gradlew modrinthSyncBody').kind, 'forbidden');
-  assert.equal(classify('MODRINTH_TOKEN=x node scripts/gallery.mjs stallium').kind, 'forbidden');
+  assert.equal(classify('MODRINTH_TOKEN=x node scripts/modrinth.mjs sync stallium').kind, 'forbidden');
   assert.equal(classify('git push && gh release create stallium/1.1.0').kind, 'forbidden');
+  assert.equal(classify('./gradlew -p mods/stallium modrinth -PmodrinthDryRun -PtargetMc=26.3'), undefined);
+  assert.equal(classify('node scripts/modrinth.mjs sync stallium --dry-run'), undefined);
+  assert.equal(classify('node scripts/modrinth.mjs published stallium 1.0.0+26.1'), undefined);
   assert.equal(classify('grep -rn "gh release create" scripts'), undefined);
   assert.equal(classify('./gradlew -p mods/stallium build'), undefined);
   assert.equal(classify('cat > notes.md <<EOF\n./gradlew modrinth\nEOF'), undefined);
 });
 
-test('before-bash: коммиты узнаются и считаются', () => {
-  assert.equal(classify('git add -A && git commit -m "x"').kind, 'commit');
+test('before-bash: коммит и пуш узнаются, коммиты считаются', () => {
+  assert.deepEqual(classify('git add -A && git commit -m "x"'), { kind: 'git', commit: true, push: false });
+  assert.deepEqual(classify('git commit -m "x" && git push origin main'), { kind: 'git', commit: true, push: true });
+  assert.deepEqual(classify('git push'), { kind: 'git', commit: false, push: true });
+  assert.equal(classify('echo "git push"'), undefined);
   assert.equal(commitCount('git commit -m a && git commit -m b'), 2);
   assert.equal(commitCount('git add scripts/commit-message.mjs'), 0);
 });

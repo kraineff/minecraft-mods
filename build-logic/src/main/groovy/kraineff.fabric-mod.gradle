@@ -2,7 +2,7 @@
 // plugins { id 'kraineff.fabric-mod' } и описывает себя в своём gradle.properties:
 //   mod_version — версия мода (JAR и Modrinth — <mod_version>+<цель>);
 //   mc_since    — первая цель Minecraft из gradle/versions.json, с которой мод собирается;
-//   modrinth_id — проект на Modrinth, если он не совпадает с id мода (необязательно).
+//   modrinth_id — проект на Modrinth (slug): с ним CI публикует мод, когда растёт mod_version.
 // Цели Minecraft, Fabric API под каждую, Loader и Java — общие: gradle/versions.json
 // (обновляет npm run versions). Цель сборки — -PtargetMc=<версия>, по умолчанию последний релиз.
 //
@@ -136,25 +136,31 @@ checkstyle {
 }
 
 // Публикация: ./gradlew modrinth -PtargetMc=<цель> -Pchangelog=<текст> — только из CI
-// (.github/workflows/publish.yml). Токен — MODRINTH_TOKEN (секрет CI), в репозитории не хранится.
+// (.github/workflows/ci.yml, job publish), когда у мода выросла mod_version. Токен —
+// MODRINTH_TOKEN (секрет CI), в репозитории не хранится. -PmodrinthDryRun — пробный прогон:
+// Minotaur печатает, что отправил бы, и ничего не загружает.
+def dryRun = providers.gradleProperty('modrinthDryRun').isPresent()
+
 modrinth {
-	token = System.getenv('MODRINTH_TOKEN')
-	projectId = providers.gradleProperty('modrinth_id').getOrElse(mod)
+	// Minotaur требует токен и в пробном прогоне — там хватает заглушки
+	token = dryRun
+			? providers.environmentVariable('MODRINTH_TOKEN').orElse('mrp_dry_run')
+			: providers.environmentVariable('MODRINTH_TOKEN')
+	projectId = providers.gradleProperty('modrinth_id')
+	debugMode = dryRun
 	versionNumber = project.version.toString()
 	versionType = 'release'
 	uploadFile = tasks.named('jar')
 	gameVersions = target.modrinth
 	loaders = ['fabric']
 	changelog = providers.gradleProperty('changelog').getOrElse('')
-	def body = file('docs/MODRINTH.md')
-	if (body.isFile()) {
-		syncBodyFrom = body.text
-	}
 	dependencies {
 		required.project 'fabric-api'
 	}
 }
 
+// Описание, ссылки и галерею проекта CI приводит к репозиторию один раз на релиз —
+// scripts/modrinth.mjs sync, а не каждая задача публикации по цели
 tasks.named('modrinth') {
-	dependsOn tasks.named('jar'), tasks.named('modrinthSyncBody')
+	dependsOn tasks.named('jar')
 }

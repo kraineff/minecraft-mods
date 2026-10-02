@@ -32,6 +32,12 @@ test('scaffold: мод для обеих сторон', () => {
     client: ['com.kraineff.horsetweaks.HorseTweaksClient'],
   });
   assert.equal(modJson.depends.java, '>=25');
+  assert.deepEqual(modJson.contact, {
+    homepage: 'https://modrinth.com/mod/horse-tweaks',
+    sources: 'https://github.com/kraineff/minecraft-mods/tree/main/mods/horse-tweaks',
+    issues: 'https://github.com/kraineff/minecraft-mods/issues',
+  });
+  assert.match(files['gradle.properties'], /^#modrinth_id=horse-tweaks$/m, 'не публикуется, пока нет проекта');
   assert.ok(files['src/main/java/com/kraineff/horsetweaks/HorseTweaks.java'].includes('implements ModInitializer'));
   assert.match(files['gradle.properties'], /org\.gradle\.jvmargs=-Xmx2G/);
   assert.doesNotMatch(files['gradle.properties'], /9\.9\.9/, 'берутся только настройки демона');

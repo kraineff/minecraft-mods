@@ -16,9 +16,9 @@ Fabric-моды для Minecraft 26.x (Java 25, Loom, Fabric API). Каждый 
 | `build-logic/` | плагин сборки `kraineff.fabric-mod`: Loom, выбор цели, Fabric API, gametests и `updateScreenshots`, Checkstyle, публикация Minotaur |
 | `gradle/versions.json` | каталог версий для всех модов: Java, Loader, Loom, Minotaur, Checkstyle и цели Minecraft с Fabric API (скилл `targets`) |
 | `config/checkstyle/` | стиль Java для всех модов |
-| `scripts/` | Node без зависимостей: версии, сборка по целям, статические проверки, CI, каркас мода, галерея Modrinth |
+| `scripts/` | Node без зависимостей: версии, сборка по целям, статические проверки, план CI, каркас мода, проект Modrinth |
 | `.claude/` | правила, скиллы, хуки |
-| `.github/workflows/` | `ci.yml` — проверки и сборка задетого по всем целям; `publish.yml` — релиз на Modrinth по тегу `<мод>/<x.y.z>` |
+| `.github/workflows/` | `ci.yml` — проверки, сборка задетых модов по всем целям и публикация модов, у которых за пуш в `main` выросла `mod_version` (план — `scripts/ci.mjs`, скилл `release`) |
 | `docs/TODO.md` | общие дела репозитория |
 
 Корневой `settings.gradle` — композит всех модов для IDE (открыть репозиторий целиком) и задач из корня (`./gradlew :stallium:runClient`). Скрипты и CI зовут мод напрямую: `./gradlew -p mods/<id> …`.
@@ -38,4 +38,4 @@ Fabric-моды для Minecraft 26.x (Java 25, Loom, Fabric API). Каждый 
 
 ## Хуки Claude Code
 
-`.claude/hooks/*.mjs` из `.claude/settings.json` — тонкие обёртки над `scripts/`: правка файла — проверки этого файла и его мода; перед `git commit` — правило сообщения и секреты; публикация (`modrinth`, `scripts/gallery.mjs`, `gh release create`) — отказ: её запускает пользователь; завершение хода — `verify-changed`; начало сессии — Node и Java, TODO и что нового у Minecraft (скилл `checks`).
+`.claude/hooks/*.mjs` из `.claude/settings.json` — тонкие обёртки над `scripts/`: правка файла — проверки этого файла и его мода; перед `git commit` — правило сообщения и секреты; перед `git push` с выросшей версией мода — подтверждение пользователя (этот пуш публикует); публикация в обход CI (`modrinth`, `scripts/modrinth.mjs sync`, `gh release create`) — отказ; завершение хода — `verify-changed`; начало сессии — Node и Java, TODO и что нового у Minecraft (скилл `checks`).

@@ -1,39 +1,85 @@
 #!/usr/bin/env node
-// ci — данные для GitHub Actions (`.github/workflows/`): что собирать и что публиковать.
-// Цели берутся из каталога `gradle/versions.json` — матрицы в workflow не пишутся руками.
+// ci — план GitHub Actions (`.github/workflows/ci.yml`, скиллы checks и release) по тому, что
+// изменил пуш или PR, — той же логикой, что `verify-changed` локально: какие моды собрать по всем
+// целям и у каких выросла версия — их CI публикует на Modrinth после зелёных проверок.
 //
-//   node scripts/ci.mjs matrix [--since <коммит>]  — `matrix=[{"mod","target"}…]` для сборки:
-//       с `--since` — моды, задетые коммитами (правка общей сборки — все), без — все моды;
-//       каждый мод — по всем своим целям
-//   node scripts/ci.mjs release <тег>              — тег релиза `<мод>/<x.y.z>`: `mod=`,
-//       `version=`, `targets=[…]`; версия должна совпадать с mod_version мода
-//   node scripts/ci.mjs changelog <мод> <версия>   — раздел docs/CHANGELOG.md этой версии
-//       (текст для Modrinth)
+//   node scripts/ci.mjs plan                      — строки для `$GITHUB_OUTPUT`: base, full, build,
+//                                                   publish, release
+//   node scripts/ci.mjs changelog <мод> <версия>  — раздел docs/CHANGELOG.md версии (текст для
+//                                                   Modrinth и GitHub Release)
 //
-// Вывод `ключ=значение` — для `>> "$GITHUB_OUTPUT"`. Ошибка — текст в stderr, код 1.
+// Вход `plan` — окружение шага: EVENT (`github.event_name`), BEFORE (`github.event.before` у
+// push), BASE (база PR), PUBLISH (мод ручного запуска). База — коммит, от которого считаются
+// изменения: у push — прежняя вершина ветки, у PR — его база. Полный прогон (все моды по всем
+// целям) — ручной запуск, нет базы (первый пуш, push --force поверх неизвестного коммита) и
+// правка самого конвейера.
+// Публикация — только push в main: моды с `modrinth_id`, у которых `mod_version` выросла против
+// базы (бамп не последним коммитом пуша тоже считается). Ручной запуск с PUBLISH — выложить
+// версию, которая уже в репозитории. Повтор безопасен: опубликованные цели CI пропускает.
 
+import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { changedFiles, takeSince } from './checks/check-all.mjs';
+import { changedFiles } from './checks/check-all.mjs';
 import { isMain } from './checks/lib/cli.mjs';
-import { modDirs, modProperties, modTargets, ROOT, readVersions } from './lib/repo.mjs';
+import {
+  compareSemver,
+  modDirs,
+  modId,
+  modProperties,
+  modTargets,
+  parseProperties,
+  ROOT,
+  readVersions,
+} from './lib/repo.mjs';
 import { verifyPlan } from './verify-changed.mjs';
 
-/** Матрица сборок: каждый мод из `mods` — по всем своим целям. */
-export function buildMatrix(mods, versions, props = (dir) => modProperties(dir)) {
-  return mods.flatMap((dir) =>
-    modTargets(props(dir), versions).targets.map((target) => ({
-      mod: dir.split('/').pop(),
-      target: target.minecraft,
-    })),
-  );
+/** Правка конвейера CI — собрать всё: план и сама сборка в CI могли сломаться. */
+const PIPELINE = /^\.github\/|^scripts\/ci\.mjs$/;
+const NO_COMMIT = /^0*$/;
+
+/** Моды, чья версия выросла: `[{ dir, from, to }]` — `version(dir, ref)` даёт mod_version в коммите. */
+export function grownVersions(dirs, version, fromRef, toRef) {
+  return dirs.flatMap((dir) => {
+    const [from, to] = [version(dir, fromRef), version(dir, toRef)];
+    return from !== undefined && to !== undefined && compareSemver(to, from) > 0 ? [{ dir, from, to }] : [];
+  });
 }
 
-/** Тег релиза `<мод>/<x.y.z>` → `{ mod, version }`; не тот вид — исключение. */
-export function parseTag(tag) {
-  const match = /^([a-z0-9][a-z0-9_-]*)\/(\d+\.\d+\.\d+)$/.exec(tag ?? '');
-  if (!match) throw new Error(`тег релиза — «<мод>/<x.y.z>» (например stallium/1.1.0), а не «${tag}»`);
-  return { mod: match[1], version: match[2] };
+/**
+ * План по событию: `{ base, full, build, publish, release }` — `build` — `[{ mod, target }]`
+ * задетых модов по всем целям, `publish` — `[{ mod, version, target }]`, `release` —
+ * `[{ mod, version }]`. Зависимости: `changed(base)` — изменённые файлы от базы,
+ * `version(dir, ref)` — mod_version мода в коммите (`undefined` — его там нет), `known(ref)` —
+ * коммит есть в истории, `mods` — моды репозитория, `props(dir)` — gradle.properties мода,
+ * `versions` — каталог целей.
+ */
+export function ciPlan({ event, before, base, publish }, { changed, version, known, mods, props, versions }) {
+  const publishable = mods.filter((dir) => props(dir).modrinth_id);
+  if (publish && !publishable.includes(`mods/${publish}`)) {
+    const list = publishable.map(modId).join(', ') || '—';
+    throw new Error(`мод ${publish} CI не публикует: нет такого мода или modrinth_id (публикуются: ${list})`);
+  }
+  const from = { push: before, pull_request: base }[event];
+  const valid = Boolean(from) && !NO_COMMIT.test(from) && known(from);
+  const files = valid ? changed(from) : undefined;
+  const full = event === 'workflow_dispatch' || files === undefined || files.some((file) => PIPELINE.test(file));
+  const affected = full ? mods : verifyPlan(files, { mods }).mods;
+
+  let released = [];
+  if (event === 'workflow_dispatch' && publish) released = [`mods/${publish}`];
+  else if (event === 'push' && valid) released = grownVersions(publishable, version, from, 'HEAD').map((item) => item.dir);
+
+  const targetsOf = (dir) => modTargets(props(dir), versions).targets.map((target) => target.minecraft);
+  return {
+    base: full ? undefined : from,
+    full,
+    build: affected.flatMap((dir) => targetsOf(dir).map((target) => ({ mod: modId(dir), target }))),
+    publish: released.flatMap((dir) =>
+      targetsOf(dir).map((target) => ({ mod: modId(dir), version: props(dir).mod_version, target })),
+    ),
+    release: released.map((dir) => ({ mod: modId(dir), version: props(dir).mod_version })),
+  };
 }
 
 /** Раздел CHANGELOG версии без заголовка; нет раздела — `undefined`. */
@@ -45,27 +91,59 @@ export function changelogSection(text, version) {
   return lines.slice(start + 1, end < 0 ? undefined : end).join('\n').trim();
 }
 
+/** Вывод git; сбой — `undefined`. */
+function gitOut(args, cwd = ROOT) {
+  try {
+    return execFileSync('git', args, { cwd, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
+  } catch {
+    return undefined;
+  }
+}
+
+/** mod_version мода в коммите (`ref`) или на диске (`ref` = `undefined`). */
+export function versionAt(dir, ref, root = ROOT) {
+  const text =
+    ref === undefined
+      ? existsSync(join(root, dir, 'gradle.properties')) ? readFileSync(join(root, dir, 'gradle.properties'), 'utf8') : undefined
+      : gitOut(['show', `${ref}:${dir}/gradle.properties`], root);
+  return text === undefined ? undefined : parseProperties(text).mod_version;
+}
+
+/**
+ * Что опубликует пуш ветки main: моды с `modrinth_id`, чья версия выросла против upstream —
+ * в HEAD или, с `worktree`, на диске (коммит в той же команде ещё не сделан). Для хука перед
+ * `git push`: не main или нет upstream — `[]`.
+ */
+export function pendingReleases({ root = ROOT, worktree = false } = {}) {
+  if (gitOut(['rev-parse', '--abbrev-ref', 'HEAD'], root)?.trim() !== 'main') return [];
+  const upstream = gitOut(['rev-parse', '--verify', '--quiet', '@{upstream}'], root)?.trim();
+  if (!upstream) return [];
+  const publishable = modDirs(root).filter((dir) => modProperties(dir, root).modrinth_id);
+  return grownVersions(publishable, (dir, ref) => versionAt(dir, ref, root), upstream, worktree ? undefined : 'HEAD');
+}
+
 function main([command, ...args]) {
   process.chdir(ROOT);
-  const versions = readVersions();
-  if (command === 'matrix') {
-    const { since } = takeSince(args);
-    const mods = since === undefined ? modDirs() : verifyPlan(changedFiles(ROOT, since), { mods: modDirs(), exists: existsSync }).mods;
-    process.stdout.write(`matrix=${JSON.stringify(buildMatrix(mods, versions))}\n`);
-    return 0;
-  }
-  if (command === 'release') {
-    const { mod, version } = parseTag(args[0]);
-    const dir = `mods/${mod}`;
-    if (!modDirs().includes(dir)) throw new Error(`нет мода ${mod}`);
-    const props = modProperties(dir);
-    if (props.mod_version !== version) {
-      throw new Error(`тег ${args[0]}, а mod_version мода — ${props.mod_version}: подними версию до релиза (скилл release)`);
-    }
-    const section = changelogSection(readFileSync(join(dir, 'docs/CHANGELOG.md'), 'utf8'), version);
-    if (!section) throw new Error(`в mods/${mod}/docs/CHANGELOG.md нет раздела [${version}]`);
-    const targets = modTargets(props, versions).targets.map((target) => target.minecraft);
-    process.stdout.write(`mod=${mod}\nversion=${version}\ntargets=${JSON.stringify(targets)}\n`);
+  if (command === 'plan') {
+    const { EVENT, BEFORE, BASE, PUBLISH } = process.env;
+    const plan = ciPlan(
+      { event: EVENT, before: BEFORE, base: BASE, publish: PUBLISH || undefined },
+      {
+        changed: (from) => changedFiles(ROOT, from),
+        version: (dir, ref) => versionAt(dir, ref),
+        known: (ref) => gitOut(['cat-file', '-e', `${ref}^{commit}`]) !== undefined,
+        mods: modDirs(),
+        props: (dir) => modProperties(dir),
+        versions: readVersions(),
+      },
+    );
+    const scope = plan.full ? 'полный прогон' : `от ${plan.base.slice(0, 9)}`;
+    const published = plan.release.map((item) => `${item.mod} ${item.version}`).join(', ') || '—';
+    process.stderr.write(`ci: ${EVENT}, ${scope}; сборок — ${plan.build.length}; публикация: ${published}\n`);
+    process.stdout.write(
+      `base=${plan.base ?? ''}\nfull=${plan.full}\nbuild=${JSON.stringify(plan.build)}\n` +
+        `publish=${JSON.stringify(plan.publish)}\nrelease=${JSON.stringify(plan.release)}\n`,
+    );
     return 0;
   }
   if (command === 'changelog') {
@@ -75,7 +153,7 @@ function main([command, ...args]) {
     process.stdout.write(`${section}\n`);
     return 0;
   }
-  throw new Error('команда: matrix | release <тег> | changelog <мод> <версия>');
+  throw new Error('команда: plan | changelog <мод> <версия>');
 }
 
 if (isMain(import.meta.url)) {

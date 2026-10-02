@@ -15,7 +15,15 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { crc32, deflateSync } from 'node:zlib';
 import { isMain } from './checks/lib/cli.mjs';
-import { defaultTarget, parseProperties, ROOT, readVersions } from './lib/repo.mjs';
+import {
+  defaultTarget,
+  ISSUES_URL,
+  modrinthUrl,
+  parseProperties,
+  ROOT,
+  readVersions,
+  sourcesUrl,
+} from './lib/repo.mjs';
 import { pendingReadmes } from './sync.mjs';
 
 const ID = /^[a-z][a-z0-9-]{1,63}$/;
@@ -96,6 +104,8 @@ ${daemon}
 # Версия мода и первая цель Minecraft; цели — gradle/versions.json (скилл targets)
 mod_version=0.1.0
 mc_since=${since}
+# Проект на Modrinth — когда он заведён: с modrinth_id CI публикует мод при росте mod_version
+#modrinth_id=${id}
 `;
   files['src/main/resources/fabric.mod.json'] = `${JSON.stringify(
     {
@@ -105,7 +115,7 @@ mc_since=${since}
       name,
       description: 'TODO: one sentence for players.',
       authors: ['Kraineff'],
-      contact: { homepage: `https://modrinth.com/mod/${id}` },
+      contact: { homepage: modrinthUrl(id), sources: sourcesUrl(id), issues: ISSUES_URL },
       license: 'MIT',
       icon: `assets/${id}/icon.png`,
       environment: client ? 'client' : '*',

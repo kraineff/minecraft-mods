@@ -4,6 +4,8 @@
 //     (их подставляет плагин сборки по цели); `depends.java` — `>=<java>` из gradle/versions.json;
 //     `depends.fabricloader` задан; `depends.fabric-api` — если код импортирует Fabric API;
 //   — есть `name`, `description`, `authors`, `license`, `icon`, и иконка лежит в ресурсах;
+//   — `contact.sources` и `contact.issues` ведут в монорепозиторий (их же CI переносит на
+//     Modrinth), у публикуемого мода (`modrinth_id`) `contact.homepage` — его проект на Modrinth;
 //   — классы точек входа (`entrypoints`) есть в исходниках; у мода для обеих сторон
 //     (`environment` не `client`) точки `main` и `server` — в src/main: клиентский набор на
 //     сервере не загрузится;
@@ -16,7 +18,7 @@
 
 import { existsSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
-import { modId, readVersions } from '../lib/repo.mjs';
+import { ISSUES_URL, modId, modProperties, modrinthUrl, readVersions, sourcesUrl } from '../lib/repo.mjs';
 import { javaFiles, lineAt, read, runCli, selectMods } from './lib/cli.mjs';
 
 const NAME = 'modjson';
@@ -43,8 +45,8 @@ const entryClass = (entry) => String(typeof entry === 'string' ? entry : entry?.
 /** Файл класса в исходниках мода или `undefined`. */
 const classFile = (files, fqn) => files.find((file) => file.endsWith(`/java/${fqn.replaceAll('.', '/')}.java`));
 
-/** Находки основного `fabric.mod.json` мода. */
-export function checkModJson(dir, json, text, { java, files }) {
+/** Находки основного `fabric.mod.json` мода; `props` — gradle.properties мода. */
+export function checkModJson(dir, json, text, { java, files, props = {} }) {
   const file = join(dir, 'src/main/resources/fabric.mod.json');
   const problems = [];
   const at = (key, message) => problems.push({ file, line: keyLine(text, key), text: message });
@@ -58,6 +60,12 @@ export function checkModJson(dir, json, text, { java, files }) {
   if (!Array.isArray(json.authors) || json.authors.length === 0) at('authors', 'нет authors');
   if (typeof json.icon === 'string' && !findResource(dir, json.icon)) {
     at('icon', `иконки ${json.icon} нет в ресурсах`);
+  }
+  const contact = json.contact ?? {};
+  if (contact.sources !== sourcesUrl(id)) at('contact', `contact.sources — "${sourcesUrl(id)}": исходники мода`);
+  if (contact.issues !== ISSUES_URL) at('contact', `contact.issues — "${ISSUES_URL}"`);
+  if (props.modrinth_id && contact.homepage !== modrinthUrl(props.modrinth_id)) {
+    at('contact', `contact.homepage — "${modrinthUrl(props.modrinth_id)}": проект мода на Modrinth`);
   }
 
   const depends = json.depends ?? {};
@@ -123,7 +131,8 @@ export function checkMod(dir, versions) {
     }
   };
   const parsed = parse(main);
-  if (parsed) problems.push(...checkModJson(dir, parsed.json, parsed.text, { java: versions.java, files }));
+  const props = modProperties(dir, process.cwd());
+  if (parsed) problems.push(...checkModJson(dir, parsed.json, parsed.text, { java: versions.java, files, props }));
   const gametest = join(dir, 'src/gametest/resources/fabric.mod.json');
   if (existsSync(join(dir, 'src/gametest'))) {
     const test = existsSync(gametest) ? parse(gametest) : undefined;

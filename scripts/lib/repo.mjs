@@ -12,6 +12,21 @@ export const ROOT = fileURLToPath(new URL('../..', import.meta.url));
 
 export const VERSIONS_FILE = 'gradle/versions.json';
 
+/** Репозиторий на GitHub — ссылки на исходники и трекер в fabric.mod.json модов и на Modrinth. */
+export const REPO_URL = 'https://github.com/kraineff/minecraft-mods';
+export const ISSUES_URL = `${REPO_URL}/issues`;
+export const sourcesUrl = (id) => `${REPO_URL}/tree/main/mods/${id}`;
+export const modrinthUrl = (slug) => `https://modrinth.com/mod/${slug}`;
+
+/** Сравнение версий вида x.y.z (у Fabric API — часть до `+`). */
+export function compareSemver(a, b) {
+  const [x, y] = [a.split('+')[0].split('.').map(Number), b.split('+')[0].split('.').map(Number)];
+  for (let k = 0; k < Math.max(x.length, y.length); k++) {
+    if ((x[k] ?? 0) !== (y[k] ?? 0)) return (x[k] ?? 0) - (y[k] ?? 0);
+  }
+  return 0;
+}
+
 /** Каталог версий `gradle/versions.json`: Java, Loader, Loom, Minotaur, Checkstyle и цели. */
 export function readVersions(root = ROOT) {
   return JSON.parse(readFileSync(join(root, VERSIONS_FILE), 'utf8'));
