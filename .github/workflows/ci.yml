@@ -68,7 +68,6 @@ jobs:
       fail-fast: false
       matrix:
         include: ${{ fromJson(needs.checks.outputs.build) }}
-    name: build ${{ matrix.mod }} ${{ matrix.target }}
     steps:
       - uses: actions/checkout@v7
 
@@ -94,7 +93,6 @@ jobs:
     strategy:
       matrix:
         include: ${{ fromJson(needs.checks.outputs.publish) }}
-    name: publish ${{ matrix.mod }} ${{ matrix.version }}+${{ matrix.target }}
     env:
       MOD: ${{ matrix.mod }}
       VERSION: ${{ matrix.version }}
@@ -146,7 +144,6 @@ jobs:
     strategy:
       matrix:
         include: ${{ fromJson(needs.checks.outputs.release) }}
-    name: release ${{ matrix.mod }} ${{ matrix.version }}
     env:
       MOD: ${{ matrix.mod }}
       VERSION: ${{ matrix.version }}
