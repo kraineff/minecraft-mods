@@ -2,7 +2,6 @@
 	"java": 25,
 	"loader": "0.19.3",
 	"loom": "1.17.17",
-	"minotaur": "2.9.0",
 	"checkstyle": "14.3.0",
 	"targets": [
 		{

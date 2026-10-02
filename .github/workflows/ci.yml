@@ -6,8 +6,9 @@ name: ci
 # config/) — всех модов, документация — только проверки. Ручной запуск и правка самого
 # конвейера — все моды по всем целям.
 # Публикуются моды с `modrinth_id`, у которых за пуш в main выросла `mod_version`, — и только
-# после зелёных проверок и сборок того же прогона: JAR под каждую цель на Modrinth, затем ссылки,
-# описание и галерея проекта, тег `<мод>/<версия>` и GitHub Release с JAR и changelog.
+# после зелёных проверок и сборок того же прогона: на Modrinth уходят те самые JAR, что собрал и
+# проверил job build, затем ссылки, описание и галерея проекта, тег `<мод>/<версия>` и GitHub
+# Release с теми же JAR и changelog.
 
 on:
   push:
@@ -82,12 +83,21 @@ jobs:
       - name: Сборка
         run: ./gradlew -p "mods/${{ matrix.mod }}" build -PtargetMc="${{ matrix.target }}" --continue
 
+      # JAR публикуемого мода: publish и GitHub Release выкладывают ровно его, без второй сборки
+      - name: JAR для публикации
+        if: matrix.publish
+        uses: actions/upload-artifact@v7
+        with:
+          name: jar-${{ matrix.mod }}-${{ matrix.target }}
+          path: mods/${{ matrix.mod }}/build/libs/${{ matrix.mod }}-${{ matrix.version }}+${{ matrix.target }}.jar
+          if-no-files-found: error
+          retention-days: 30
+
   publish:
     needs: [checks, build]
-    # build пропущен, когда собирать нечего, — это не провал
+    # публикуемый мод всегда в build: его JAR берутся оттуда
     if: >-
-      !cancelled() && needs.checks.result == 'success'
-      && (needs.build.result == 'success' || needs.build.result == 'skipped')
+      !cancelled() && needs.checks.result == 'success' && needs.build.result == 'success'
       && needs.checks.outputs.publish != '[]'
     runs-on: ubuntu-latest
     strategy:
@@ -100,38 +110,20 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - uses: actions/setup-java@v6
-        with:
-          distribution: temurin
-          java-version: '25'
-
       - uses: actions/setup-node@v7
         with:
           node-version: 24
 
-      - uses: gradle/actions/setup-gradle@v6
-
-      # Повтор прогона не плодит версии: уже выложенная цель пропускается
-      - name: Уже на Modrinth?
-        id: check
-        run: node scripts/modrinth.mjs published "$MOD" "$VERSION+$TARGET" >> "$GITHUB_OUTPUT"
-
-      - name: Публикация на Modrinth
-        if: steps.check.outputs.published != 'true'
-        env:
-          MODRINTH_TOKEN: ${{ secrets.MODRINTH_TOKEN }}
-        run: |
-          changelog="$(node scripts/ci.mjs changelog "$MOD" "$VERSION")"
-          ./gradlew -p "mods/$MOD" modrinth -PtargetMc="$TARGET" -Pchangelog="$changelog"
-
-      - name: JAR для GitHub Release
-        run: ./gradlew -p "mods/$MOD" jar -PtargetMc="$TARGET"
-
-      - uses: actions/upload-artifact@v7
+      - uses: actions/download-artifact@v8
         with:
           name: jar-${{ matrix.mod }}-${{ matrix.target }}
-          path: mods/${{ matrix.mod }}/build/libs/${{ matrix.mod }}-${{ matrix.version }}+${{ matrix.target }}.jar
-          if-no-files-found: error
+          path: jars
+
+      # Уже выложенная версия пропускается — повтор прогона безопасен
+      - name: Публикация на Modrinth
+        env:
+          MODRINTH_TOKEN: ${{ secrets.MODRINTH_TOKEN }}
+        run: node scripts/modrinth.mjs upload "$MOD" "$TARGET" "jars/$MOD-$VERSION+$TARGET.jar"
 
   release:
     needs: [checks, publish]

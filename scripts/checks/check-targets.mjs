@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // check-targets — каталог целей Minecraft `gradle/versions.json` и цели модов в порядке:
-//   — `java`, `loader`, `loom`, `minotaur`, `checkstyle` заданы;
+//   — `java`, `loader`, `loom`, `checkstyle` заданы;
 //   — цели — по возрастанию, по одной на линию (`26.3`, `26.4-snapshot-2`): у линии либо релиз,
 //     либо последний пререлиз; `fabricApi` — сборка Fabric API своей линии (`…+26.3`);
 //     `range` — диапазон линии (`>=26.3 <26.4-`, у пререлиза `>=26.4- <26.5-`); `modrinth` —
@@ -43,7 +43,7 @@ export function checkCatalog(versions, text = '') {
     problems.push({ file: VERSIONS_FILE, line: offset < 0 ? 1 : lineAt(text, offset), text: message });
   };
   if (!Number.isInteger(versions.java)) at('"java"', 'java — номер версии Java (25)');
-  for (const key of ['loader', 'loom', 'minotaur', 'checkstyle']) {
+  for (const key of ['loader', 'loom', 'checkstyle']) {
     if (typeof versions[key] !== 'string' || !SEMVER.test(versions[key])) at(`"${key}"`, `${key} — версия x.y.z`);
   }
   if (!Array.isArray(versions.targets) || versions.targets.length === 0) {

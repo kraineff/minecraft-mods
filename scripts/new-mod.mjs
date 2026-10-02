@@ -82,7 +82,7 @@ export function scaffold({ id, name, client, since, java, gradleProps }) {
 // Из корня: ./gradlew -p mods/${id} build [-PtargetMc=<цель>]
 pluginManagement {
 	includeBuild '../../build-logic'
-	// Откуда брать Loom и Minotaur — зависимости плагина build-logic
+	// Откуда брать Loom — зависимость плагина build-logic
 	repositories {
 		maven {
 			name = 'Fabric'

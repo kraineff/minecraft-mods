@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // versions — что вышло нового против каталога `gradle/versions.json` (скилл targets):
 // версии Minecraft (манифест Mojang), Fabric API под каждую (Modrinth), Fabric Loader,
-// Loom, Minotaur, Checkstyle и Gradle. Маппинги не нужны: с 26.1 игра выходит без обфускации.
+// Loom, Checkstyle и Gradle. Маппинги не нужны: с 26.1 игра выходит без обфускации.
 //
 //   node scripts/versions.mjs            — отчёт: что обновить и что ещё ждёт Fabric API
 //   node scripts/versions.mjs --write    — применить к каталогу цели и Loader, обновить mc_since
@@ -16,7 +16,7 @@
 //   — патчи релиза (`26.3.1`) добавляются в `modrinth` цели, если их поддерживает Fabric API
 //     цели: JAR тот же, диапазон `>=26.3 <26.4-` их уже покрывает;
 //   — новая линия (`26.5-snapshot-1`) добавляется целью в конец, когда под неё есть Fabric API.
-// Loom, Minotaur, Checkstyle и Gradle — только в отчёте: их обновление может потребовать правок
+// Loom, Checkstyle и Gradle — только в отчёте: их обновление может потребовать правок
 // сборки, его делают руками (скилл targets). Сеть недоступна — код 2.
 
 import { readFileSync, writeFileSync } from 'node:fs';
@@ -42,8 +42,6 @@ const SOURCES = {
   fabricApi: 'https://api.modrinth.com/v2/project/fabric-api/version',
   loader: 'https://meta.fabricmc.net/v2/versions/loader',
   loom: 'https://maven.fabricmc.net/net/fabricmc/fabric-loom/maven-metadata.xml',
-  minotaur:
-    'https://plugins.gradle.org/m2/com/modrinth/minotaur/com.modrinth.minotaur.gradle.plugin/maven-metadata.xml',
   checkstyle: 'https://repo1.maven.org/maven2/com/puppycrawl/tools/checkstyle/maven-metadata.xml',
   gradle: 'https://services.gradle.org/versions/current',
 };
@@ -208,11 +206,10 @@ export async function collect(catalog = readVersions(), root = ROOT) {
     .map((version) => version.id)
     .filter((id) => parseMinecraft(id) && (!first || compareMinecraft(lineOf(id), lineOf(first)) >= 0));
   const query = encodeURIComponent(JSON.stringify([...new Set([...mojang, ...catalog.targets.map((t) => t.minecraft)])]));
-  const [apiVersions, loader, loom, minotaur, checkstyle, gradle] = await Promise.all([
+  const [apiVersions, loader, loom, checkstyle, gradle] = await Promise.all([
     get(`${SOURCES.fabricApi}?loaders=%5B%22fabric%22%5D&game_versions=${query}`),
     get(SOURCES.loader),
     get(SOURCES.loom, 'text'),
-    get(SOURCES.minotaur, 'text'),
     get(SOURCES.checkstyle, 'text'),
     get(SOURCES.gradle),
   ]);
@@ -228,7 +225,6 @@ export async function collect(catalog = readVersions(), root = ROOT) {
         latest: latestStable(loomVersions, `${loomBranch}.`),
         next: latestStable(loomVersions),
       },
-      minotaur: { current: catalog.minotaur, latest: latestStable(mavenVersions(minotaur)) },
       checkstyle: { current: catalog.checkstyle, latest: latestStable(mavenVersions(checkstyle)) },
       gradle: { current: wrapperGradle(root), latest: gradle.version },
     },

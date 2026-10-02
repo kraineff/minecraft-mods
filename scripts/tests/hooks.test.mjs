@@ -5,11 +5,10 @@ import { commitMessage, subjectProblems } from '../commit-message.mjs';
 import { endsWithQuestion, offerToRecord, todoCounts, unrecordedOffer } from '../journals.mjs';
 
 test('before-bash: публикация — отказ, пробный прогон и упоминание в тексте — мимо', () => {
-  assert.equal(classify('./gradlew -p mods/stallium modrinth -PtargetMc=26.3').kind, 'forbidden');
-  assert.equal(classify('cd x && ../../gradlew modrinthSyncBody').kind, 'forbidden');
+  assert.equal(classify('node scripts/modrinth.mjs upload stallium 26.3 jars/x.jar').kind, 'forbidden');
   assert.equal(classify('MODRINTH_TOKEN=x node scripts/modrinth.mjs sync stallium').kind, 'forbidden');
   assert.equal(classify('git push && gh release create stallium/1.1.0').kind, 'forbidden');
-  assert.equal(classify('./gradlew -p mods/stallium modrinth -PmodrinthDryRun -PtargetMc=26.3'), undefined);
+  assert.equal(classify('node scripts/modrinth.mjs upload stallium 26.3 jars/x.jar --dry-run'), undefined);
   assert.equal(classify('node scripts/modrinth.mjs sync stallium --dry-run'), undefined);
   assert.equal(classify('node scripts/modrinth.mjs published stallium 1.0.0+26.1'), undefined);
   assert.equal(classify('grep -rn "gh release create" scripts'), undefined);

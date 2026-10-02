@@ -2,8 +2,8 @@
 // check-project — устройство мода `mods/<id>/` (rules/project.md, скилл mod-new):
 //   — settings.gradle подключает build-logic (`includeBuild '../../build-logic'`) и называет
 //     сборку именем папки; build.gradle применяет `kraineff.fabric-mod` и не дублирует его:
-//     ни Loom, ни Minotaur, ни зависимостей minecraft / fabric-loader / fabric-api, ни блоков
-//     loom / modrinth / checkstyle;
+//     ни Loom, ни зависимостей minecraft / fabric-loader / fabric-api, ни блоков loom /
+//     checkstyle; своей публикации (Minotaur, блок modrinth) нет — публикует CI;
 //   — gradle.properties: настройки демона `org.gradle.*` — как в корневом gradle.properties;
 //   — своих gradlew, gradle/, .gitignore, .gitattributes, .github нет — они общие, в корне;
 //   — есть CLAUDE.md, README.md, docs/CHANGELOG.md, docs/MODRINTH.md, fabric.mod.json;
@@ -26,11 +26,11 @@ const REQUIRED = ['CLAUDE.md', 'README.md', 'docs/CHANGELOG.md', 'docs/MODRINTH.
 const SHARED = ['gradlew', 'gradlew.bat', 'gradle', '.gitignore', '.gitattributes', '.github'];
 const DUPLICATED = [
   [/net\.fabricmc\.fabric-loom|['"]fabric-loom['"]/, 'плагин Loom'],
-  [/com\.modrinth\.minotaur/, 'плагин Minotaur'],
+  [/com\.modrinth\.minotaur|^\s*modrinth\s*\{/m, 'своя публикация (Minotaur) — мод публикует CI, scripts/modrinth.mjs'],
   [/com\.mojang:minecraft/, 'зависимость minecraft'],
   [/net\.fabricmc:fabric-loader/, 'зависимость fabric-loader'],
   [/net\.fabricmc\.fabric-api:fabric-api/, 'зависимость fabric-api'],
-  [/^\s*(loom|modrinth|checkstyle)\s*\{/m, 'блок настройки'],
+  [/^\s*(loom|checkstyle)\s*\{/m, 'блок настройки'],
 ];
 
 const at = (text, needle) => {

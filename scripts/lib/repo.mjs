@@ -27,7 +27,7 @@ export function compareSemver(a, b) {
   return 0;
 }
 
-/** Каталог версий `gradle/versions.json`: Java, Loader, Loom, Minotaur, Checkstyle и цели. */
+/** Каталог версий `gradle/versions.json`: Java, Loader, Loom, Checkstyle и цели. */
 export function readVersions(root = ROOT) {
   return JSON.parse(readFileSync(join(root, VERSIONS_FILE), 'utf8'));
 }

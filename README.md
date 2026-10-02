@@ -24,7 +24,7 @@ JAR — в `mods/<id>/build/libs/`. Открыть в IDE можно корен�
 Цели сборки (версии Minecraft и Fabric API под каждую), Loader, Loom и Java — общий каталог `gradle/versions.json`; мод собирается с цели `mc_since` из своего `gradle.properties`. Что вышло нового и обновление каталога:
 
 ```bash
-npm run versions             # отчёт: Minecraft, Fabric API, Loader, Loom, Minotaur, Checkstyle, Gradle
+npm run versions             # отчёт: Minecraft, Fabric API, Loader, Loom, Checkstyle, Gradle
 npm run versions -- --write  # применить к каталогу: свежий Fabric API, снапшот → релиз, новая линия
 ```
 
@@ -57,7 +57,7 @@ npm run new-mod -- horse-tweaks "Horse Tweaks" [--client]
 
 ```
 ├── mods/<id>/             — моды: build.gradle, gradle.properties, src/, docs/
-├── build-logic/           — плагин сборки kraineff.fabric-mod (Loom, цели, Fabric API, gametests, Checkstyle, Modrinth)
+├── build-logic/           — плагин сборки kraineff.fabric-mod (Loom, цели, Fabric API, gametests, Checkstyle)
 ├── gradle/versions.json   — каталог версий для всех модов
 ├── config/checkstyle/     — стиль Java
 ├── scripts/               — версии, сборка по целям, проверки, план CI, каркас мода, проект Modrinth

@@ -76,7 +76,6 @@ test('check-targets: каталог по правилам и типичные о
     java: 25,
     loader: '0.19.5',
     loom: '1.17.17',
-    minotaur: '2.9.0',
     checkstyle: '14.3.0',
     targets: [
       { minecraft: '26.1', fabricApi: '0.155.3+26.1.2', range: '>=26.1 <26.2-', modrinth: ['26.1', '26.1.2'] },

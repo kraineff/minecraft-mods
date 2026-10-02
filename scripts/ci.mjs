@@ -48,7 +48,8 @@ export function grownVersions(dirs, version, fromRef, toRef) {
 
 /**
  * План по событию: `{ base, full, build, publish, release }` — `build` — `[{ mod, target }]`
- * задетых модов по всем целям, `publish` — `[{ mod, version, target }]`, `release` —
+ * задетых модов по всем целям (у публикуемого — ещё `publish: true` и `version`: его JAR job build
+ * отдаёт в publish и в GitHub Release), `publish` — `[{ mod, version, target }]`, `release` —
  * `[{ mod, version }]`. Зависимости: `changed(base)` — изменённые файлы от базы,
  * `version(dir, ref)` — mod_version мода в коммите (`undefined` — его там нет), `known(ref)` —
  * коммит есть в истории, `mods` — моды репозитория, `props(dir)` — gradle.properties мода,
@@ -71,10 +72,17 @@ export function ciPlan({ event, before, base, publish }, { changed, version, kno
   else if (event === 'push' && valid) released = grownVersions(publishable, version, from, 'HEAD').map((item) => item.dir);
 
   const targetsOf = (dir) => modTargets(props(dir), versions).targets.map((target) => target.minecraft);
+  const built = [...new Set([...affected, ...released])];
   return {
     base: full ? undefined : from,
     full,
-    build: affected.flatMap((dir) => targetsOf(dir).map((target) => ({ mod: modId(dir), target }))),
+    build: built.flatMap((dir) =>
+      targetsOf(dir).map((target) =>
+        released.includes(dir)
+          ? { mod: modId(dir), target, publish: true, version: props(dir).mod_version }
+          : { mod: modId(dir), target },
+      ),
+    ),
     publish: released.flatMap((dir) =>
       targetsOf(dir).map((target) => ({ mod: modId(dir), version: props(dir).mod_version, target })),
     ),

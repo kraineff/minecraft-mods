@@ -8,5 +8,4 @@ def versions = new groovy.json.JsonSlurper().parse(file('../gradle/versions.json
 
 dependencies {
 	implementation "net.fabricmc:fabric-loom:${versions.loom}"
-	implementation "com.modrinth.minotaur:Minotaur:${versions.minotaur}"
 }

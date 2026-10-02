@@ -101,7 +101,7 @@ test('toolLines: только отставшие и следующая ветк�
     loader: { current: '0.19.5', latest: '0.19.5' },
     loom: { current: '1.17.17', latest: '1.17.21', next: '1.18.2' },
     gradle: { current: '9.8.0', latest: '9.8.0' },
-    minotaur: { current: '2.10.0', latest: '2.10.0', next: '3.0.0' },
+    checkstyle: { current: '14.3.0', latest: '14.3.0', next: '15.0.0' },
   });
-  assert.deepEqual(lines, ['loom 1.17.17 → 1.17.21 (есть и 1.18.2)', 'minotaur 2.10.0 — свежий в ветке, есть 3.0.0']);
+  assert.deepEqual(lines, ['loom 1.17.17 → 1.17.21 (есть и 1.18.2)', 'checkstyle 14.3.0 — свежий в ветке, есть 15.0.0']);
 });

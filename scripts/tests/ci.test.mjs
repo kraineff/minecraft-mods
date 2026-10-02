@@ -31,8 +31,9 @@ test('ciPlan: пуш с бампом публикует только публи�
   assert.equal(plan.full, false);
   assert.equal(plan.base, BEFORE);
   assert.deepEqual(
-    plan.build.map((item) => `${item.mod} ${item.target}`),
-    ['a 26.1', 'a 26.2', 'a 26.3', 'a 26.4-snapshot-2', 'b 26.3', 'b 26.4-snapshot-2'],
+    plan.build.map((item) => `${item.mod} ${item.target}${item.publish ? ` → ${item.version}` : ''}`),
+    ['a 26.1 → 1.1.0', 'a 26.2 → 1.1.0', 'a 26.3 → 1.1.0', 'a 26.4-snapshot-2 → 1.1.0', 'b 26.3', 'b 26.4-snapshot-2'],
+    'JAR публикуемого a job build отдаёт в publish',
   );
   assert.deepEqual(plan.release, [{ mod: 'a', version: '1.1.0' }], 'у b нет modrinth_id — не публикуется');
   assert.deepEqual(

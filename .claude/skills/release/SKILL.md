@@ -1,11 +1,11 @@
 ---
 name: release
-description: Релиз мода на Modrinth — как CI публикует сам (ci.yml: мод с modrinth_id, у которого за пуш в main выросла mod_version, после зелёных проверок и сборок того же прогона), подготовка релиза (раздел CHANGELOG, mod_version по semver, npm run sync), подтверждение пользователя перед пушем с бампом, что делает CI (JAR под каждую цель, ссылки, описание и галерея проекта, тег и GitHub Release), повтор и ручной запуск, пробный прогон, первый релиз нового мода. Используется, когда пользователь просит выпустить или опубликовать версию, «зарелизь», «выложи на Modrinth», и при правке ci.yml, scripts/ci.mjs, scripts/modrinth.mjs.
+description: Релиз мода на Modrinth — как CI публикует сам (ci.yml: мод с modrinth_id, у которого за пуш в main выросла mod_version, после зелёных проверок и сборок того же прогона; на Modrinth уходят JAR из job build через scripts/modrinth.mjs upload), подготовка релиза (раздел CHANGELOG, mod_version по semver, npm run sync), подтверждение пользователя перед пушем с бампом, ссылки, описание и галерея проекта, тег и GitHub Release, повтор и ручной запуск, пробный прогон, первый релиз нового мода. Используется, когда пользователь просит выпустить или опубликовать версию, «зарелизь», «выложи на Modrinth», и при правке ci.yml, scripts/ci.mjs, scripts/modrinth.mjs.
 ---
 
 # Релиз
 
-**Поднять `mod_version` — значит опубликовать.** Пуш в `main`, после которого у мода с `modrinth_id` выросла версия, CI сам выкладывает на Modrinth. Поэтому версию поднимаю только по просьбе пользователя выпустить релиз; хук перед `git push` всё равно спросит у него подтверждение («этот пуш опубликует …»). Задачи `modrinth`, `scripts/modrinth.mjs sync` и `gh release create` сам не запускаю — хук откажет.
+**Поднять `mod_version` — значит опубликовать.** Пуш в `main`, после которого у мода с `modrinth_id` выросла версия, CI сам выкладывает на Modrinth. Поэтому версию поднимаю только по просьбе пользователя выпустить релиз; хук перед `git push` всё равно спросит у него подтверждение («этот пуш опубликует …»). `scripts/modrinth.mjs upload` / `sync` и `gh release create` сам не запускаю — хук откажет.
 
 ## Подготовка (Claude)
 
@@ -16,14 +16,15 @@ description: Релиз мода на Modrinth — как CI публикует 
 5. `npm run verify:changed` и `npm run build -- <мод> --all-targets`; `check-changelog` сверит раздел с `mod_version`.
 6. Коммит `chore(<мод>): Выпустить x.y.z` и пуш — хук спросит подтверждение у пользователя.
 
-Пробный прогон без записи: `./gradlew -p mods/<мод> modrinth -PmodrinthDryRun -PtargetMc=<цель> -Pchangelog="…"` — Minotaur покажет, что отправил бы; `node scripts/modrinth.mjs sync <мод> --dry-run` — что поменяется в проекте.
+Пробный прогон без записи: `node scripts/modrinth.mjs upload <мод> <цель> mods/<мод>/build/libs/<мод>-x.y.z+<цель>.jar --dry-run` — что уйдёт на Modrinth (уже выложенную версию скажет и пропустит); `node scripts/modrinth.mjs sync <мод> --dry-run` — что поменяется в проекте.
 
 ## Что делает CI (`ci.yml`)
 
 План — `node scripts/ci.mjs plan`: публикуются моды с `modrinth_id`, у которых `mod_version` выросла против прежней вершины `main` (бамп не последним коммитом пуша тоже считается; понижение — нет), и только если проверки и сборки этого прогона зелёные.
 
-1. **publish** — по задаче на цель мода: уже выложенная версия пропускается (`scripts/modrinth.mjs published`), иначе `./gradlew -p mods/<мод> modrinth -PtargetMc=<цель> -Pchangelog=<раздел>` — Minotaur загружает `<мод>-x.y.z+<цель>.jar` с версиями игры из `modrinth` цели и зависимостью Fabric API.
-2. **release** — один раз на мод: `scripts/modrinth.mjs sync` приводит проект к репозиторию (ссылки на исходники и трекер из `contact` в `fabric.mod.json`, описание из `docs/MODRINTH.md`, галерея — пересобирается, только если подписи разошлись или скриншоты менялись с прошлого тега), затем тег `<мод>/x.y.z` и GitHub Release с JAR всех целей и changelog.
+1. **build** собирает и проверяет мод под каждую цель и отдаёт его JAR артефактом — публикуется ровно он, второй сборки нет.
+2. **publish** — по задаче на цель, без Java и Gradle: `scripts/modrinth.mjs upload` выкладывает `<мод>-x.y.z+<цель>.jar` (версии игры — `modrinth` цели из каталога, changelog — раздел CHANGELOG, зависимость Fabric API — из `fabric.mod.json`); уже выложенная версия пропускается.
+3. **release** — один раз на мод: `scripts/modrinth.mjs sync` приводит проект к репозиторию (ссылки на исходники и трекер из `contact` в `fabric.mod.json`, описание из `docs/MODRINTH.md`, галерея — пересобирается, только если подписи разошлись или скриншоты менялись с прошлого тега), затем тег `<мод>/x.y.z` и GitHub Release с JAR всех целей и changelog.
 
 Токен — секрет репозитория `MODRINTH_TOKEN` (PAT Modrinth с правами на версии и правку проекта).
 

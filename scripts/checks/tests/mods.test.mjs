@@ -15,7 +15,6 @@ const versions = {
   java: 25,
   loader: '0.19.5',
   loom: '1.17.17',
-  minotaur: '2.9.0',
   checkstyle: '14.3.0',
   targets: [{ minecraft: '26.3', fabricApi: '0.161.0+26.3', range: '>=26.3 <26.4-', modrinth: ['26.3'] }],
 };

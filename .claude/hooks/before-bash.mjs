@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 // PreToolUse (Bash): страховка команд модели.
-//   — публикация — у CI и пользователя (скилл release): задачи Gradle `modrinth` /
-//     `modrinthSyncBody`, `scripts/modrinth.mjs sync` (запись в проект Modrinth) и
-//     `gh release create` (релизы и теги создаёт CI после публикации) — отказ (код 2). Пробные
-//     прогоны (`-PmodrinthDryRun`, `sync --dry-run`) и `modrinth.mjs published` ничего не пишут;
+//   — публикация — у CI и пользователя (скилл release): `scripts/modrinth.mjs upload` и `sync`
+//     (запись в проект Modrinth) и `gh release create` (релизы и теги создаёт CI после
+//     публикации) — отказ (код 2). Пробный прогон (`--dry-run`) и `modrinth.mjs published`
+//     ничего не пишут;
 //   — `git push` ветки main, после которого CI опубликует моды с выросшей `mod_version`
 //     (`scripts/ci.mjs`, `pendingReleases`), — вопрос пользователю в окне подтверждения:
 //     пуш с бампом и есть релиз;
@@ -23,13 +23,8 @@ const ENV = String.raw`(?:\w+=\S*\s+)*`;
 /** Команды публикации: шаблон, что это, и пробный прогон, который ничего не пишет. */
 const PUBLISH = [
   [
-    new RegExp(`${AT_COMMAND}${ENV}\\S*gradlew\\b[^;&|\\n]*\\s(modrinth|modrinthSyncBody)\\b[^;&|\\n]*`),
-    'публикация на Modrinth (задача Gradle modrinth)',
-    /-PmodrinthDryRun\b/,
-  ],
-  [
-    new RegExp(`${AT_COMMAND}${ENV}(?:node\\s+)?\\S*scripts/modrinth\\.mjs\\s+sync\\b[^;&|\\n]*`),
-    'запись проекта Modrinth (scripts/modrinth.mjs sync)',
+    new RegExp(`${AT_COMMAND}${ENV}(?:node\\s+)?\\S*scripts/modrinth\\.mjs\\s+(upload|sync)\\b[^;&|\\n]*`),
+    'запись в Modrinth (scripts/modrinth.mjs upload / sync)',
     /\s--dry-run\b/,
   ],
   [
@@ -78,7 +73,7 @@ if (isMain(import.meta.url)) {
   const command = String(input.tool_input?.command ?? '');
   const verdict = classify(command);
   if (verdict?.kind === 'forbidden') {
-    block(`${verdict.what}: публикацию запускает CI по росту mod_version или пользователь (скилл release).`);
+    block(`${verdict.what}: публикует CI по росту mod_version (скилл release).`);
   }
   if (verdict?.commit) {
     process.chdir(ROOT);

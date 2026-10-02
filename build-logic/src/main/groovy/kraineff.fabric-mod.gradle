@@ -7,14 +7,13 @@
 // (обновляет npm run versions). Цель сборки — -PtargetMc=<версия>, по умолчанию последний релиз.
 //
 // Подключено: Loom (раздельные main/client, если есть src/client), Fabric API, клиентские
-// gametests и updateScreenshots (если есть src/gametest), Checkstyle (config/checkstyle),
-// публикация в Modrinth через Minotaur — задача modrinth, её запускает только CI (скилл release).
+// gametests и updateScreenshots (если есть src/gametest), Checkstyle (config/checkstyle).
+// Публикует не сборка, а CI: JAR из job build уходят на Modrinth через scripts/modrinth.mjs.
 
 plugins {
 	id 'java'
 	id 'checkstyle'
 	id 'net.fabricmc.fabric-loom'
-	id 'com.modrinth.minotaur'
 }
 
 def mod = project.name
@@ -133,34 +132,4 @@ checkstyle {
 	configFile = new File(repo, 'config/checkstyle/checkstyle.xml')
 	configDirectory = new File(repo, 'config/checkstyle')
 	maxWarnings = 0
-}
-
-// Публикация: ./gradlew modrinth -PtargetMc=<цель> -Pchangelog=<текст> — только из CI
-// (.github/workflows/ci.yml, job publish), когда у мода выросла mod_version. Токен —
-// MODRINTH_TOKEN (секрет CI), в репозитории не хранится. -PmodrinthDryRun — пробный прогон:
-// Minotaur печатает, что отправил бы, и ничего не загружает.
-def dryRun = providers.gradleProperty('modrinthDryRun').isPresent()
-
-modrinth {
-	// Minotaur требует токен и в пробном прогоне — там хватает заглушки
-	token = dryRun
-			? providers.environmentVariable('MODRINTH_TOKEN').orElse('mrp_dry_run')
-			: providers.environmentVariable('MODRINTH_TOKEN')
-	projectId = providers.gradleProperty('modrinth_id')
-	debugMode = dryRun
-	versionNumber = project.version.toString()
-	versionType = 'release'
-	uploadFile = tasks.named('jar')
-	gameVersions = target.modrinth
-	loaders = ['fabric']
-	changelog = providers.gradleProperty('changelog').getOrElse('')
-	dependencies {
-		required.project 'fabric-api'
-	}
-}
-
-// Описание, ссылки и галерею проекта CI приводит к репозиторию один раз на релиз —
-// scripts/modrinth.mjs sync, а не каждая задача публикации по цели
-tasks.named('modrinth') {
-	dependsOn tasks.named('jar')
 }
