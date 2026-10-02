@@ -40,6 +40,6 @@ public class StalliumClient implements ClientModInitializer {
 		GrowthTracker.register();
 		HorseLabels.register();
 		HorseHud.register();
-		log.info("[Stallium] Initialized");
+		log.info("[Stallium]: Initialized");
 	}
 }

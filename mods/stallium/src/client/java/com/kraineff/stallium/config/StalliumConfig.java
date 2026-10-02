@@ -11,7 +11,7 @@ import org.slf4j.LoggerFactory;
 
 /** Настройки мода; хранятся в config/stallium.json. */
 public class StalliumConfig {
-	private static final Logger log = LoggerFactory.getLogger("com.kraineff.stallium.StalliumConfig");
+	private static final Logger log = LoggerFactory.getLogger("com.kraineff.stallium.config.StalliumConfig");
 	private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
 	private static StalliumConfig instance;
 
@@ -43,7 +43,7 @@ public class StalliumConfig {
 					return config;
 				}
 			} catch (IOException | RuntimeException e) {
-				log.warn("Config unreadable, using defaults: {}", path, e);
+				log.warn("[Config]: File \"{}\" not read, defaults used ({})", path, e.toString());
 			}
 		}
 		return new StalliumConfig();
@@ -54,7 +54,7 @@ public class StalliumConfig {
 			clampValues();
 			Files.writeString(path(), GSON.toJson(this));
 		} catch (IOException e) {
-			log.warn("Config not saved: {}", path(), e);
+			log.warn("[Config]: File \"{}\" not saved ({})", path(), e.toString());
 		}
 	}
 

@@ -1,0 +1,83 @@
+name: publish
+
+# Публикация мода на Modrinth по GitHub Release с тегом `<мод>/<x.y.z>` (скилл release):
+# JAR под каждую цель мода из каталога gradle/versions.json, changelog — раздел
+# docs/CHANGELOG.md этой версии, описание проекта — docs/MODRINTH.md, галерея —
+# docs/gallery.json и docs/screenshots/. Версия тега должна совпадать с mod_version мода —
+# иначе план падает до сборки (`scripts/ci.mjs release`).
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    outputs:
+      mod: ${{ steps.release.outputs.mod }}
+      version: ${{ steps.release.outputs.version }}
+      targets: ${{ steps.release.outputs.targets }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+
+      - name: Мод, версия и цели из тега
+        id: release
+        env:
+          TAG: ${{ github.event.release.tag_name }}
+        run: node scripts/ci.mjs release "$TAG" >> "$GITHUB_OUTPUT"
+
+  publish:
+    needs: plan
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        target: ${{ fromJson(needs.plan.outputs.targets) }}
+    name: publish ${{ needs.plan.outputs.mod }} ${{ matrix.target }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '25'
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+
+      - uses: gradle/actions/setup-gradle@v6
+
+      - name: Публикация на Modrinth
+        env:
+          MOD: ${{ needs.plan.outputs.mod }}
+          VERSION: ${{ needs.plan.outputs.version }}
+          TARGET: ${{ matrix.target }}
+          MODRINTH_TOKEN: ${{ secrets.MODRINTH_TOKEN }}
+        run: |
+          changelog="$(node scripts/ci.mjs changelog "$MOD" "$VERSION")"
+          ./gradlew -p "mods/$MOD" modrinth -PtargetMc="$TARGET" -Pchangelog="$changelog"
+
+  gallery:
+    needs: [plan, publish]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+
+      - name: Галерея Modrinth
+        env:
+          MOD: ${{ needs.plan.outputs.mod }}
+          MODRINTH_TOKEN: ${{ secrets.MODRINTH_TOKEN }}
+        run: |
+          if [ -f "mods/$MOD/docs/gallery.json" ]; then
+            node scripts/gallery.mjs "$MOD"
+          else
+            echo "У мода нет docs/gallery.json — галерея не трогается"
+          fi

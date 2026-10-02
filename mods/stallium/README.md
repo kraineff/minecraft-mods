@@ -79,34 +79,39 @@
 Полностью клиентский мод (на сервер ставить не нужно, работает на любых
 серверах). Требует Fabric Loader ≥ 0.19 и Fabric API.
 
-| Сборка                                | Minecraft            |
-|---------------------------------------|----------------------|
-| `stallium-1.0.0+26.1.jar`             | 26.1, 26.1.1, 26.1.2 |
-| `stallium-1.0.0+26.2.jar`             | 26.2                 |
-| `stallium-1.0.0+26.3.jar`             | 26.3                 |
-| `stallium-1.0.0+26.4-snapshot-2.jar`  | 26.4-snapshot-2      |
+<!-- targets: генерирует npm run sync -->
+| Сборка                               | Minecraft            |
+|--------------------------------------|----------------------|
+| `stallium-1.0.0+26.1.jar`            | 26.1, 26.1.1, 26.1.2 |
+| `stallium-1.0.0+26.2.jar`            | 26.2                 |
+| `stallium-1.0.0+26.3.jar`            | 26.3                 |
+| `stallium-1.0.0+26.4-snapshot-2.jar` | 26.4-snapshot-2      |
+<!-- /targets -->
 
 Скачать — на [Modrinth](https://modrinth.com/mod/stallium); положить подходящий
 JAR в `.minecraft/mods` рядом с Fabric API. Локальная сборка — `build/libs/`.
 
 ## Сборка
 
+Мод живёт в монорепозитории модов: общая сборка — плагин `kraineff.fabric-mod`
+(`build-logic/`), цели Minecraft — общий каталог `gradle/versions.json`, мод
+собирается с цели `mc_since` из своего `gradle.properties`. Команды — из корня
+репозитория:
+
 ```bash
-./gradlew build                              # цель по умолчанию — 26.1
-./gradlew build -PtargetMc=26.2
-./gradlew build -PtargetMc=26.3
-./gradlew build -PtargetMc=26.4-snapshot-2
+./gradlew -p mods/stallium build                     # цель по умолчанию — последний релиз
+./gradlew -p mods/stallium build -PtargetMc=26.1     # конкретная цель
+npm run build -- stallium --all-targets              # все цели подряд
 ```
 
-Готовые JAR появляются в `build/libs/`. Список целей — мапа `targets`
-в `build.gradle`.
+Готовые JAR появляются в `mods/stallium/build/libs/`.
 
 Скриншот-проверка (создаёт плоский мир, спавнит трёх лошадей с разными
 статами, садится на среднюю, открывает настройки и делает снимки в
 `build/run/clientGameTest/screenshots/`):
 
 ```bash
-./gradlew runClientGameTest
+./gradlew -p mods/stallium runClientGameTest [-PtargetMc=<цель>]
 ```
 
 Обновить скриншоты в README и галерее Modrinth — то же самое, но с
@@ -114,19 +119,20 @@ JAR в `.minecraft/mods` рядом с Fabric API. Локальная сборк
 и изменившееся — перезаписывается):
 
 ```bash
-./gradlew updateScreenshots
+./gradlew -p mods/stallium updateScreenshots
 ```
 
 ## Релиз
 
 1. В `docs/CHANGELOG.md` перенести пункты из `[Unreleased]` в новый раздел
    `[x.y.z] - YYYY-MM-DD`, завести пустой `[Unreleased]` сверху.
-2. Поднять `mod_version` в `gradle.properties`.
+2. Поднять `mod_version` в `gradle.properties`, затем `npm run sync`
+   (имена JAR в таблице версий).
 3. Закоммитить, запушить.
-4. Создать GitHub Release с тегом `x.y.z` — workflow
-   `publish-modrinth.yml` соберёт JAR под каждую цель из `targets` и
-   опубликует их на Modrinth: changelog — из раздела `docs/CHANGELOG.md`
-   для этой версии, описание проекта — из `docs/MODRINTH.md`.
+4. Создать GitHub Release с тегом `stallium/x.y.z` — workflow `publish.yml`
+   соберёт JAR под каждую цель мода и опубликует их на Modrinth: changelog —
+   из раздела `docs/CHANGELOG.md` для этой версии, описание проекта — из
+   `docs/MODRINTH.md`, галерея — из `docs/gallery.json` и `docs/screenshots/`.
 
 ## Как устроено
 

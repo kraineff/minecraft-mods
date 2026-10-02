@@ -4,6 +4,7 @@ import com.kraineff.stallium.config.StalliumConfig;
 import com.kraineff.stallium.stats.HorseTracker;
 import net.minecraft.world.entity.Entity;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
@@ -11,6 +12,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 @Mixin(Entity.class)
 public class EntityMixin {
 	// Цвет ChatFormatting.GOLD; в 26.2 у ChatFormatting больше нет метода цвета.
+	@Unique
 	private static final int GOLD = 0xFFAA00;
 
 	/** Обводка лучшей лошади — золотая, как у команды GOLD. */

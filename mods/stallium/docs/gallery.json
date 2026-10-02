@@ -1,0 +1,24 @@
+{
+	"images": [
+		{
+			"file": "field.png",
+			"title": "Stat labels in the world",
+			"description": "Speed, jump height and health above each horse; the best one nearby is outlined in gold"
+		},
+		{
+			"file": "field-shift.png",
+			"title": "Exact numbers (Shift)",
+			"description": "Hold Shift to see exact values after the bars"
+		},
+		{
+			"file": "baby-shift.png",
+			"title": "Foal growth timer",
+			"description": "Growth timer shown next to a foal's stats"
+		},
+		{
+			"file": "riding.png",
+			"title": "Riding HUD",
+			"description": "Your mount's stats above the hotbar while riding"
+		}
+	]
+}

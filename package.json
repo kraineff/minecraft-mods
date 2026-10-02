@@ -1,0 +1,20 @@
+{
+  "name": "minecraft-mods",
+  "private": true,
+  "description": "Скрипты монорепозитория модов: версии и цели Minecraft, статические проверки, сборка по целям, CI. Без зависимостей — только встроенные модули Node.",
+  "engines": {
+    "node": ">=22.2"
+  },
+  "scripts": {
+    "versions": "node scripts/versions.mjs",
+    "sync": "node scripts/sync.mjs",
+    "build": "node scripts/build.mjs",
+    "new-mod": "node scripts/new-mod.mjs",
+    "checks": "node scripts/checks/check-all.mjs",
+    "checks:changed": "node scripts/checks/check-all.mjs --changed",
+    "test:scripts": "node --test 'scripts/tests/*.test.mjs' 'scripts/checks/tests/*.test.mjs'",
+    "verify": "npm run checks && npm run test:scripts && node scripts/build.mjs",
+    "verify:changed": "node scripts/verify-changed.mjs",
+    "journals": "node scripts/journals.mjs"
+  }
+}

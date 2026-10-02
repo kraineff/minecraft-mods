@@ -1,0 +1,78 @@
+name: ci
+
+# Проверки и сборка того, что изменил пуш или PR (скилл checks): статические проверки и тесты
+# скриптов — по всему репозиторию (это секунды), сборка — каждый задетый мод по всем своим целям.
+# Матрицу считает `scripts/ci.mjs matrix` из каталога gradle/versions.json: правка мода — его
+# цели, правка общей сборки (build-logic/, gradle/, config/) — все моды, документация — ничего.
+# Ручной запуск — все моды по всем целям.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+# PR: новый пуш отменяет прежний прогон; main — никогда
+concurrency:
+  group: ci-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.plan.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          # база пуша или PR нужна для диффа
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+
+      - name: Статические проверки
+        run: npm run checks
+
+      - name: Тесты скриптов
+        run: npm run test:scripts
+
+      - name: План сборки
+        id: plan
+        env:
+          EVENT: ${{ github.event_name }}
+          BEFORE: ${{ github.event.before }}
+          BASE: ${{ github.event.pull_request.base.sha }}
+        run: |
+          since=""
+          if [ "$EVENT" = pull_request ]; then since="$BASE"; fi
+          if [ "$EVENT" = push ] && [ -n "$BEFORE" ] && [ "$BEFORE" != 0000000000000000000000000000000000000000 ]; then since="$BEFORE"; fi
+          if [ -n "$since" ]; then
+            node scripts/ci.mjs matrix --since "$since" >> "$GITHUB_OUTPUT"
+          else
+            node scripts/ci.mjs matrix >> "$GITHUB_OUTPUT"
+          fi
+
+  build:
+    needs: checks
+    if: needs.checks.outputs.matrix != '[]'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJson(needs.checks.outputs.matrix) }}
+    name: build ${{ matrix.mod }} ${{ matrix.target }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '25'
+
+      - uses: gradle/actions/setup-gradle@v6
+
+      # Компиляция всех наборов исходников (с gametests) и Checkstyle
+      - name: Сборка
+        run: ./gradlew -p "mods/${{ matrix.mod }}" build -PtargetMc="${{ matrix.target }}" --continue
