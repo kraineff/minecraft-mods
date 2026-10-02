@@ -161,11 +161,6 @@ jobs:
         with:
           node-version: 24
 
-      - name: Ссылки, описание и галерея проекта Modrinth
-        env:
-          MODRINTH_TOKEN: ${{ secrets.MODRINTH_TOKEN }}
-        run: node scripts/modrinth.mjs sync "$MOD"
-
       - uses: actions/download-artifact@v8
         with:
           pattern: release-${{ matrix.mod }}-*
@@ -192,3 +187,9 @@ jobs:
             gh release create "$tag" "${jars[@]}" --target "$GITHUB_SHA" --title "$MOD $VERSION" --notes-file "$RUNNER_TEMP/notes.md"
             echo "Релиз — https://github.com/$GITHUB_REPOSITORY/releases/tag/$tag" >> "$GITHUB_STEP_SUMMARY"
           fi
+
+      # Последним: GitHub Release важнее для истории и не должен ждать правки страницы проекта
+      - name: Ссылки, описание, галерея и устаревшие сборки на Modrinth
+        env:
+          MODRINTH_TOKEN: ${{ secrets.MODRINTH_TOKEN }}
+        run: node scripts/modrinth.mjs sync "$MOD"

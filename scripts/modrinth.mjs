@@ -45,8 +45,15 @@ async function request(method, path, { token, body, json } = {}) {
   return response;
 }
 
+// Права PAT Modrinth, которые нужны CI: без них сервер отвечает 401 «Invalid Authentication Credentials»
+const SCOPES_HINT =
+  'у токена MODRINTH_TOKEN не хватает прав — нужны Create versions, Write versions и Write projects';
+
 async function expectOk(response, what) {
-  if (!response.ok) throw new Error(`${what} → ${response.status} ${await response.text()}`);
+  if (!response.ok) {
+    const hint = response.status === 401 ? ` (${SCOPES_HINT})` : '';
+    throw new Error(`${what} → ${response.status} ${await response.text()}${hint}`);
+  }
   return response;
 }
 
@@ -195,45 +202,62 @@ async function sync(mod, dryRun) {
   const say = (text) => process.stdout.write(`${dryRun ? '[dry-run] ' : ''}${text}\n`);
 
   const project = await (await expectOk(await request('GET', `/project/${id}`), `проект ${id}`)).json();
+  // Части независимы: сбой одной не мешает остальным, все сбои — в конце одной ошибкой
+  const failures = [];
+  const step = async (action) => {
+    try {
+      await action();
+    } catch (error) {
+      process.stderr.write(`modrinth: ${error.message}\n`);
+      failures.push(error.message);
+    }
+  };
+
   const patch = {};
   if (modJson.contact?.sources && project.source_url !== modJson.contact.sources) patch.source_url = modJson.contact.sources;
   if (modJson.contact?.issues && project.issues_url !== modJson.contact.issues) patch.issues_url = modJson.contact.issues;
   if (project.body.trim() !== body.trim()) patch.body = body;
-  if (Object.keys(patch).length > 0) {
+  await step(async () => {
+    if (Object.keys(patch).length === 0) return say(`Проект ${id}: ссылки и описание уже совпадают`);
     say(`Проект ${id}: ${Object.keys(patch).join(', ')}`);
     if (!dryRun) await expectOk(await request('PATCH', `/project/${id}`, { token, json: patch }), `правка проекта ${id}`);
-  } else say(`Проект ${id}: ссылки и описание уже совпадают`);
+  });
 
-  const all = await (await expectOk(await request('GET', `/project/${id}/version`, { token }), `версии ${id}`)).json();
-  for (const old of supersededVersions(all, readVersions().targets)) {
-    say(`Версия ${old.version_number}: спрятать (unlisted) — её версии игры устарели`);
-    if (!dryRun) {
-      await expectOk(await request('PATCH', `/version/${old.id}`, { token, json: { status: 'unlisted' } }), `версия ${old.version_number}`);
+  await step(async () => {
+    const all = await (await expectOk(await request('GET', `/project/${id}/version`, { token }), `версии ${id}`)).json();
+    for (const old of supersededVersions(all, readVersions().targets)) {
+      say(`Версия ${old.version_number}: спрятать (unlisted) — её версии игры устарели`);
+      if (!dryRun) {
+        await expectOk(await request('PATCH', `/version/${old.id}`, { token, json: { status: 'unlisted' } }), `версия ${old.version_number}`);
+      }
     }
-  }
+  });
 
-  if (galleryMatches(project.gallery ?? [], images) && !screenshotsChanged(mod, version)) {
-    say(`Галерея ${id}: без изменений`);
-    return;
-  }
-  for (const item of project.gallery ?? []) {
-    say(`Галерея ${id}: удалить ${item.url}`);
-    if (!dryRun) await expectOk(await request('DELETE', `/project/${id}/gallery?url=${encodeURIComponent(item.url)}`, { token }), 'удаление картинки');
-  }
-  for (const [index, image] of images.entries()) {
-    const query = new URLSearchParams({
-      ext: image.file.split('.').pop(),
-      featured: String(index === 0),
-      ordering: String(index),
-      title: image.title,
-      description: image.description,
-    });
-    say(`Галерея ${id}: загрузить ${image.file}`);
-    if (!dryRun) {
-      const bytes = readFileSync(join(dir, 'docs/screenshots', image.file));
-      await expectOk(await request('POST', `/project/${id}/gallery?${query}`, { token, body: bytes }), `загрузка ${image.file}`);
+  await step(async () => {
+    if (galleryMatches(project.gallery ?? [], images) && !screenshotsChanged(mod, version)) {
+      return say(`Галерея ${id}: без изменений`);
     }
-  }
+    for (const item of project.gallery ?? []) {
+      say(`Галерея ${id}: удалить ${item.url}`);
+      if (!dryRun) await expectOk(await request('DELETE', `/project/${id}/gallery?url=${encodeURIComponent(item.url)}`, { token }), 'удаление картинки');
+    }
+    for (const [index, image] of images.entries()) {
+      const query = new URLSearchParams({
+        ext: image.file.split('.').pop(),
+        featured: String(index === 0),
+        ordering: String(index),
+        title: image.title,
+        description: image.description,
+      });
+      say(`Галерея ${id}: загрузить ${image.file}`);
+      if (!dryRun) {
+        const bytes = readFileSync(join(dir, 'docs/screenshots', image.file));
+        await expectOk(await request('POST', `/project/${id}/gallery?${query}`, { token, body: bytes }), `загрузка ${image.file}`);
+      }
+    }
+  });
+
+  if (failures.length > 0) throw new Error(`не всё приведено к репозиторию: ${failures.length} сбой(я) выше`);
 }
 
 async function main([command, mod, ...rest]) {
