@@ -28,6 +28,8 @@ test('before-bash: коммит и пуш узнаются, коммиты сч�
 
 test('commit-message: правило коммитов', () => {
   assert.equal(commitMessage('git commit -m "feat(stallium): Добавить X"'), 'feat(stallium): Добавить X');
+  assert.equal(commitMessage('git commit -q -am "ci(x): Суть" -m "- тело"'), 'ci(x): Суть', '-am — тоже -m');
+  assert.equal(commitMessage('git commit --amend --no-edit'), undefined);
   assert.deepEqual(subjectProblems('feat(stallium): Добавить таймер'), []);
   assert.equal(subjectProblems('fix: stuff').length, 1);
   assert.deepEqual(subjectProblems('fix(repo): поправить.'), ['суть — с заглавной буквы', 'без точки в конце']);

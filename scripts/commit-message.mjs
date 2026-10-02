@@ -20,15 +20,16 @@ export function heredocBodies(command) {
 }
 
 /**
- * Сообщение из команды `git commit`: тело heredoc после `-F -` или `-m "…"` / `-m '…'`;
- * не разобрать (`-F файл`, `--no-edit`, редактор) — `undefined`.
+ * Сообщение из команды `git commit`: тело heredoc после `-F -` или первое `-m "…"` / `-m '…'`
+ * (и в связке коротких флагов: `-am`, `-qam`); не разобрать (`-F файл`, `--no-edit`,
+ * редактор) — `undefined`.
  */
 export function commitMessage(command) {
   const heredoc = /-F\s+-\s*<<-?\s*(['"]?)(\w+)\1[^\n]*\n([\s\S]*?)\n\s*\2\s*(?:\n|$)/.exec(
     command,
   );
   if (heredoc) return heredoc[3];
-  const inline = /\s-m\s+(?:"((?:[^"\\]|\\.)*)"|'([^']*)')/.exec(command);
+  const inline = /\s-[a-zA-Z]*m\s+(?:"((?:[^"\\]|\\.)*)"|'([^']*)')/.exec(command);
   if (inline) return (inline[1] ?? inline[2]).replace(/\\(["\\$`])/g, '$1');
   return undefined;
 }
