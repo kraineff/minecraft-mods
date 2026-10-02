@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { buildPlan, parseBuildArgs } from '../build.mjs';
 import { changelogSection, ciPlan, grownVersions } from '../ci.mjs';
-import { galleryMatches } from '../modrinth.mjs';
+import { galleryMatches, supersededVersions } from '../modrinth.mjs';
 import { verifyPlan } from '../verify-changed.mjs';
 
 const versions = {
@@ -88,6 +88,25 @@ test('galleryMatches: подписи, порядок и featured; описани
   assert.equal(galleryMatches(current, images), true);
   assert.equal(galleryMatches([{ ...current[1], description: null }, current[0]], images), false);
   assert.equal(galleryMatches(current.slice(0, 1), images), false);
+});
+
+test('supersededVersions: прячутся сборки под старые снапшоты линии, когда замена выложена', () => {
+  const targets = [
+    { minecraft: '26.3', modrinth: ['26.3'] },
+    { minecraft: '26.4-snapshot-3', modrinth: ['26.4-snapshot-3'] },
+  ];
+  const v = (number, games, status = 'listed') => ({ id: number, version_number: number, game_versions: games, status });
+  const versions = [
+    v('1.0.0+26.3-snapshot-9', ['26.3-snapshot-8', '26.3-snapshot-9']),
+    v('1.0.0+26.3', ['26.3']),
+    v('1.0.0+26.4-snapshot-2', ['26.4-snapshot-2']),
+    v('1.0.0+26.4-snapshot-1', ['26.4-snapshot-1'], 'unlisted'),
+    v('1.0.0+26.2', ['26.2']),
+  ];
+  assert.deepEqual(supersededVersions(versions, targets).map((x) => x.version_number), ['1.0.0+26.3-snapshot-9'],
+    'сборки под 26.4-snapshot-3 ещё нет — snapshot-2 остаётся; уже спрятанные и релизы не трогаем');
+  const withNew = [...versions, v('1.0.0+26.4-snapshot-3', ['26.4-snapshot-3'])];
+  assert.deepEqual(supersededVersions(withNew, targets).map((x) => x.version_number), ['1.0.0+26.3-snapshot-9', '1.0.0+26.4-snapshot-2']);
 });
 
 test('verifyPlan: мод — его сборка, общая сборка — все, документация — ничего', () => {

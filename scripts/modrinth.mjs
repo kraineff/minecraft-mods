@@ -15,6 +15,9 @@
 //       fabric.mod.json), описание (docs/MODRINTH.md), галерея (docs/gallery.json и
 //       docs/screenshots/). Меняется только то, что отличается; галерея пересобирается целиком,
 //       если её подписи расходятся или картинки менялись с прошлого релиза (тег `<мод>/<версия>`).
+//       Сборки под устаревшие пререлизы (снапшот сменился следующим или вышел релиз линии, а
+//       замена уже выложена) прячутся — unlisted: уходят из списка и лаунчеров, но по прямой
+//       ссылке и в модпаках работают. Не удаляются никогда.
 //       `--dry-run` — только показать, что изменится (токен не нужен).
 //
 // Проект — `modrinth_id` из gradle.properties мода. `upload` и `sync` пишут в публичный проект:
@@ -25,7 +28,7 @@ import { appendFileSync, existsSync, readFileSync } from 'node:fs';
 import { basename, join } from 'node:path';
 import { changelogSection } from './ci.mjs';
 import { isMain } from './checks/lib/cli.mjs';
-import { modProperties, ROOT, readVersions } from './lib/repo.mjs';
+import { isPrerelease, lineOf, modProperties, ROOT, readVersions } from './lib/repo.mjs';
 
 const API = 'https://api.modrinth.com/v2';
 const HEADERS = { 'user-agent': 'kraineff/minecraft-mods (scripts/modrinth.mjs)' };
@@ -66,6 +69,25 @@ export function galleryMatches(current, images) {
         item.featured === (index === 0),
     )
   );
+}
+
+/**
+ * Сборки под устаревшие пререлизы: видимые (`listed`) версии, все версии игры которых —
+ * пререлизы одной линии, а текущая цель этой линии в каталоге — другая и под неё уже есть видимая
+ * сборка. `versions` — версии проекта из API, `targets` — цели каталога.
+ */
+export function supersededVersions(versions, targets) {
+  const current = new Map(targets.map((target) => [lineOf(target.minecraft), target]));
+  const listed = versions.filter((version) => version.status === 'listed');
+  const covered = (game) => listed.some((version) => version.game_versions.includes(game));
+  return listed.filter((version) => {
+    const games = version.game_versions;
+    if (games.length === 0 || !games.every(isPrerelease)) return false;
+    const lines = new Set(games.map(lineOf));
+    const target = lines.size === 1 ? current.get([...lines][0]) : undefined;
+    if (!target || games.includes(target.minecraft)) return false;
+    return target.modrinth.some(covered);
+  });
 }
 
 /** Картинки галереи менялись после прошлого релиза мода (последний тег `<мод>/…`, кроме `version`). */
@@ -181,6 +203,14 @@ async function sync(mod, dryRun) {
     say(`Проект ${id}: ${Object.keys(patch).join(', ')}`);
     if (!dryRun) await expectOk(await request('PATCH', `/project/${id}`, { token, json: patch }), `правка проекта ${id}`);
   } else say(`Проект ${id}: ссылки и описание уже совпадают`);
+
+  const all = await (await expectOk(await request('GET', `/project/${id}/version`, { token }), `версии ${id}`)).json();
+  for (const old of supersededVersions(all, readVersions().targets)) {
+    say(`Версия ${old.version_number}: спрятать (unlisted) — её версии игры устарели`);
+    if (!dryRun) {
+      await expectOk(await request('PATCH', `/version/${old.id}`, { token, json: { status: 'unlisted' } }), `версия ${old.version_number}`);
+    }
+  }
 
   if (galleryMatches(project.gallery ?? [], images) && !screenshotsChanged(mod, version)) {
     say(`Галерея ${id}: без изменений`);
