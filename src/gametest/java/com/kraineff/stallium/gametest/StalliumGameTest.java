@@ -2,6 +2,7 @@ package com.kraineff.stallium.gametest;
 
 import com.kraineff.stallium.config.StalliumConfig;
 import com.kraineff.stallium.config.StalliumConfigScreen;
+import java.lang.reflect.Method;
 import java.util.Locale;
 import net.fabricmc.fabric.api.client.gametest.v1.FabricClientGameTest;
 import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext;
@@ -29,7 +30,7 @@ public class StalliumGameTest implements FabricClientGameTest {
 							.ifPresent(settings::setWorldType);
 				})
 				.create()) {
-			singleplayer.getClientLevel().waitForChunksRender();
+			waitForChunksRender(singleplayer);
 			TestServerContext server = singleplayer.getServer();
 
 			context.runOnClient(minecraft -> {
@@ -78,6 +79,26 @@ public class StalliumGameTest implements FabricClientGameTest {
 			context.waitTicks(2);
 			context.takeScreenshot("stallium-settings");
 		}
+	}
+
+	/**
+	 * Дождаться отрисовки чанков. В Fabric API для 26.1–26.2 (client-gametest v5) —
+	 * {@code getClientLevel()}, с 26.3 (v6) — {@code getConnection()}; метод ищется
+	 * в рантайме, чтобы тест собирался под все цели.
+	 */
+	private static void waitForChunksRender(TestSingleplayerContext singleplayer) {
+		for (String name : new String[] {"getConnection", "getClientLevel"}) {
+			try {
+				Method getter = TestSingleplayerContext.class.getMethod(name);
+				getter.getReturnType().getMethod("waitForChunksRender").invoke(getter.invoke(singleplayer));
+				return;
+			} catch (NoSuchMethodException e) {
+				// нет в этой версии API — следующий вариант
+			} catch (ReflectiveOperationException e) {
+				throw new IllegalStateException("waitForChunksRender failed", e);
+			}
+		}
+		throw new IllegalStateException("No chunk render wait in TestSingleplayerContext");
 	}
 
 	private static void summonHorse(TestServerContext server, double x, double z,

@@ -83,7 +83,8 @@
 |---------------------------------------|----------------------|
 | `stallium-1.0.0+26.1.jar`             | 26.1, 26.1.1, 26.1.2 |
 | `stallium-1.0.0+26.2.jar`             | 26.2                 |
-| `stallium-1.0.0+26.3-snapshot-7.jar`  | 26.3-snapshot-7      |
+| `stallium-1.0.0+26.3.jar`             | 26.3                 |
+| `stallium-1.0.0+26.4-snapshot-2.jar`  | 26.4-snapshot-2      |
 
 Скачать — на [Modrinth](https://modrinth.com/mod/stallium); положить подходящий
 JAR в `.minecraft/mods` рядом с Fabric API. Локальная сборка — `build/libs/`.
@@ -93,7 +94,8 @@ JAR в `.minecraft/mods` рядом с Fabric API. Локальная сборк
 ```bash
 ./gradlew build                              # цель по умолчанию — 26.1
 ./gradlew build -PtargetMc=26.2
-./gradlew build -PtargetMc=26.3-snapshot-7
+./gradlew build -PtargetMc=26.3
+./gradlew build -PtargetMc=26.4-snapshot-2
 ```
 
 Готовые JAR появляются в `build/libs/`. Список целей — мапа `targets`

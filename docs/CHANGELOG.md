@@ -9,7 +9,8 @@ written for players — what changed for you, not how it was implemented.
 
 ### Added
 
-- Support for Minecraft 26.3-snapshot-7
+- Support for Minecraft 26.3
+- Support for Minecraft 26.4 snapshots (26.4-snapshot-2)
 
 ## [1.0.0] - 2026-07-24
 

@@ -12,7 +12,8 @@ jobs:
         target:
           - '26.1'
           - '26.2'
-          - '26.3-snapshot-7'
+          - '26.3'
+          - '26.4-snapshot-2'
     steps:
       - uses: actions/checkout@v7
 
