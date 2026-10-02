@@ -43,6 +43,16 @@ description: Релиз мода на Modrinth — когда поднимать
 
 Токен — секрет репозитория `MODRINTH_TOKEN`: PAT Modrinth с правами Create versions, Write versions (прятать устаревшие сборки) и Write projects (ссылки, описание, галерея); без нужного права Modrinth отвечает 401 «Invalid Authentication Credentials». Упала задача — исправить и `Re-run failed jobs` в том же прогоне: выложенное пропустится, а JAR для GitHub Release лежат в артефактах этого прогона (новый прогон их уже не выложит и в релиз не допишет).
 
+### GitHub Release упал с 403
+
+«Resource not accessible by integration» на создании релиза — тег ставится на коммит прогона, а после него в `main` уже ушли правки `.github/workflows/`: такой тег требует права `workflows`, которого у токена CI не бывает. Поэтому правки workflow не пушим, пока идёт релиз. Если случилось — релиз создаёт пользователь своим токеном (у `gh` есть `workflow`) с теми же JAR из артефактов прогона:
+
+```bash
+gh run download <run> -R kraineff/minecraft-mods -p 'release-<мод>-*' -D jars
+node scripts/ci.mjs changelog <мод> <версия> > notes.md
+gh release create <мод>/<версия> -R kraineff/minecraft-mods --target <коммит прогона> --title "<мод> <версия>" --notes-file notes.md jars/*/*.jar
+```
+
 Пробный прогон без записи: `node scripts/modrinth.mjs upload <мод> <цель> mods/<мод>/build/libs/<мод>-x.y.z+<цель>.jar --dry-run` — что уйдёт на Modrinth; `node scripts/modrinth.mjs sync <мод> --dry-run` — что поменяется в проекте.
 
 ## Первый релиз нового мода

@@ -182,14 +182,23 @@ jobs:
           if gh release view "$tag" > /dev/null 2>&1; then
             gh release upload "$tag" "${jars[@]}" --clobber
             echo "В релиз $tag добавлено: ${jars[*]##*/}" >> "$GITHUB_STEP_SUMMARY"
-          else
-            node scripts/ci.mjs changelog "$MOD" "$VERSION" > "$RUNNER_TEMP/notes.md"
-            gh release create "$tag" "${jars[@]}" --target "$GITHUB_SHA" --title "$MOD $VERSION" --notes-file "$RUNNER_TEMP/notes.md"
-            echo "Релиз — https://github.com/$GITHUB_REPOSITORY/releases/tag/$tag" >> "$GITHUB_STEP_SUMMARY"
+            exit 0
           fi
+          node scripts/ci.mjs changelog "$MOD" "$VERSION" > "$RUNNER_TEMP/notes.md"
+          if ! out=$(gh release create "$tag" "${jars[@]}" --target "$GITHUB_SHA" --title "$MOD $VERSION" --notes-file "$RUNNER_TEMP/notes.md" 2>&1); then
+            echo "$out"
+            # Тег на коммит, после которого в main ушли правки workflow-файлов, требует права workflows —
+            # у GITHUB_TOKEN его не бывает. Релиз создаёт пользователь своим токеном (скилл release)
+            if grep -q 'Resource not accessible by integration' <<<"$out"; then
+              echo "::error::Тег $tag на $GITHUB_SHA токен CI не создаст: после этого коммита в main менялись workflow-файлы. Создайте релиз своей командой — скилл release, «GitHub Release упал с 403»."
+            fi
+            exit 1
+          fi
+          echo "Релиз — https://github.com/$GITHUB_REPOSITORY/releases/tag/$tag" >> "$GITHUB_STEP_SUMMARY"
 
-      # Последним: GitHub Release важнее для истории и не должен ждать правки страницы проекта
+      # Отдельно от релиза: правка страницы проекта идёт, даже если релиз не создался
       - name: Ссылки, описание, галерея и устаревшие сборки на Modrinth
+        if: ${{ !cancelled() }}
         env:
           MODRINTH_TOKEN: ${{ secrets.MODRINTH_TOKEN }}
         run: node scripts/modrinth.mjs sync "$MOD"
