@@ -4,8 +4,10 @@
 //   MODRINTH_TOKEN=… node scripts/modrinth.mjs upload <мод> <цель> <jar> [--dry-run]
 //       — выложить JAR, собранный в job build: версия `<mod_version>+<цель>`, версии игры —
 //       `modrinth` цели из каталога, changelog — раздел CHANGELOG этой версии, зависимость Fabric
-//       API — если она есть в fabric.mod.json. Уже выложенная версия пропускается: повтор прогона
-//       безопасен. `--dry-run` — только показать, что отправится (токен не нужен)
+//       API — если она есть в fabric.mod.json. Уже выложенная под эту цель версия пропускается:
+//       повтор прогона и порт (та же версия на новую цель) безопасны; номер, занятый сборкой под
+//       другие версии игры, — ошибка. В CI пишет `uploaded=true|false` в $GITHUB_OUTPUT.
+//       `--dry-run` — только показать, что отправится (токен не нужен)
 //   node scripts/modrinth.mjs published <мод> <номер версии>  — `published=true|false`: такая версия
 //       уже выложена (публичный API, без токена)
 //   MODRINTH_TOKEN=… node scripts/modrinth.mjs sync <мод> [--dry-run]
@@ -19,7 +21,7 @@
 // их запускает только CI (хук перед командой откажет модели).
 
 import { execFileSync } from 'node:child_process';
-import { existsSync, readFileSync } from 'node:fs';
+import { appendFileSync, existsSync, readFileSync } from 'node:fs';
 import { basename, join } from 'node:path';
 import { changelogSection } from './ci.mjs';
 import { isMain } from './checks/lib/cli.mjs';
@@ -81,15 +83,20 @@ function screenshotsChanged(mod, version) {
   }
 }
 
-/** Версия проекта с таким номером уже выложена. */
-async function isPublished(id, number) {
+/** Выложенная версия проекта с таким номером или `undefined`. */
+async function findVersion(id, number) {
   const response = await request('GET', `/project/${id}/version/${encodeURIComponent(number)}`);
-  if (response.status !== 404) await expectOk(response, `версия ${number}`);
-  return response.ok;
+  if (response.status === 404) return undefined;
+  return (await expectOk(response, `версия ${number}`)).json();
 }
 
 async function published(mod, number) {
-  process.stdout.write(`published=${await isPublished(projectOf(mod), number)}\n`);
+  process.stdout.write(`published=${(await findVersion(projectOf(mod), number)) !== undefined}\n`);
+}
+
+/** Итог загрузки для следующих шагов CI (`steps.<id>.outputs.uploaded`). */
+function report(uploaded) {
+  if (process.env.GITHUB_OUTPUT) appendFileSync(process.env.GITHUB_OUTPUT, `uploaded=${uploaded}\n`);
 }
 
 /** Поле `data` запроса POST /version: версия мода под одну цель (схема CreatableVersion). */
@@ -123,8 +130,16 @@ async function upload(mod, target, jar, dryRun) {
   if (!entry) throw new Error(`цели ${target} нет в gradle/versions.json`);
   const changelog = changelogSection(readFileSync(join(dir, 'docs/CHANGELOG.md'), 'utf8'), version);
   if (changelog === undefined) throw new Error(`в CHANGELOG мода нет раздела [${version}]`);
-  if (await isPublished(slug, number)) {
+  const existing = await findVersion(slug, number);
+  if (existing) {
+    if (!existing.game_versions.some((game) => entry.modrinth.includes(game))) {
+      throw new Error(
+        `номер ${number} на Modrinth занят сборкой под ${existing.game_versions.join(', ')} — ` +
+          'переименуйте её на Modrinth (скилл release, «Порт»)',
+      );
+    }
     process.stdout.write(`${slug} ${number}: уже выложена — пропускаю\n`);
+    report(false);
     return;
   }
   const projectId = (await (await expectOk(await request('GET', `/project/${slug}`), `проект ${slug}`)).json()).id;
@@ -143,6 +158,7 @@ async function upload(mod, target, jar, dryRun) {
   form.append('file', new Blob([readFileSync(jar)]), basename(jar));
   const created = await (await expectOk(await request('POST', '/version', { token, body: form }), `загрузка ${number}`)).json();
   process.stdout.write(`${slug} ${number}: выложена — https://modrinth.com/mod/${slug}/version/${created.id}\n`);
+  report(true);
 }
 
 async function sync(mod, dryRun) {

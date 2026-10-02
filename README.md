@@ -51,7 +51,9 @@ npm run new-mod -- horse-tweaks "Horse Tweaks" [--client]
 
 1. В `mods/<id>/docs/CHANGELOG.md` — раздел `[x.y.z] - YYYY-MM-DD` из `[Unreleased]`; `mod_version` в `gradle.properties`; `npm run sync`.
 2. Коммит и пуш в `main`.
-3. CI (`ci.yml`) соберёт и загрузит JAR под каждую цель мода (changelog — раздел CHANGELOG), приведёт проект к репозиторию (ссылки, описание из `docs/MODRINTH.md`, галерея из `docs/gallery.json`) и создаст тег `<id>/x.y.z` с GitHub Release. Повтор прогона безопасен, ручной запуск с полем `publish` перевыкладывает версию из репозитория. Токен — секрет `MODRINTH_TOKEN`.
+3. CI (`ci.yml`) соберёт и загрузит JAR под каждую цель мода (changelog — раздел CHANGELOG), приведёт проект к репозиторию (ссылки, описание из `docs/MODRINTH.md`, галерея из `docs/gallery.json`) и создаст тег `<id>/x.y.z` с GitHub Release. Повтор прогона безопасен. Токен — секрет `MODRINTH_TOKEN`.
+
+Версия мода растёт, только когда меняется сам мод. Новая версия Minecraft или снапшот без изменений мода — порт: версию не поднимают, а запускают CI вручную с полем `publish` (Actions → ci → Run workflow) — текущая версия уйдёт только на цели, где её ещё нет.
 
 ## Как устроено
 

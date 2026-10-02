@@ -36,7 +36,7 @@ description: Статические проверки монорепозитор�
 | Хук | Когда | Что делает |
 |---|---|---|
 | `after-edit.mjs` | после Edit/Write | проверки, которые задевает файл (план — `changedPlan` из check-all): Java — логи и миксины мода, lang — переводы, каталог — цели. Находки — модели (код 2) |
-| `before-bash.mjs` | перед Bash | `git commit` — сообщение по правилу коммитов (`scripts/commit-message.mjs`) и `check-secrets --pending`; `git push` ветки main, который опубликует моды с выросшей `mod_version` (`scripts/ci.mjs`), — вопрос пользователю в окне подтверждения; публикация (`scripts/modrinth.mjs upload` / `sync`, `gh release create`) — отказ, пробный прогон (`--dry-run`) — можно |
+| `before-bash.mjs` | перед Bash | `git commit` — сообщение по правилу коммитов (`scripts/commit-message.mjs`) и `check-secrets --pending`; `git push` ветки main, который опубликует моды с выросшей `mod_version` (`scripts/ci.mjs`), и ручной запуск публикации (`gh workflow run … publish=<мод>`) — вопрос пользователю в окне подтверждения; публикация (`scripts/modrinth.mjs upload` / `sync`, `gh release create`) — отказ, пробный прогон (`--dry-run`) — можно |
 | `on-stop.mjs` | завершение хода | `verify-changed` и предложение в ответе без записи в TODO (`scripts/journals.mjs`); рабочая копия с прошлого хода та же — проверки не повторяются, если прошлый прогон был зелёным |
 | `on-session-start.mjs` | начало сессии | Node и Java, сводка TODO, что нового у Minecraft и инструментов (раз в 12 часов) |
 

@@ -134,6 +134,9 @@ npm run build -- stallium --all-targets              # все цели подр�
    из `docs/MODRINTH.md`, галерея — из `docs/gallery.json` и
    `docs/screenshots/`; затем создаст тег `stallium/x.y.z` и GitHub Release.
 
+Новая версия Minecraft без изменений мода — без подъёма версии: ручной запуск
+CI с полем `publish` = `stallium` выложит текущую версию только на новые цели.
+
 ## Как устроено
 
 ```

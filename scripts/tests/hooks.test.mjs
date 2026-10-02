@@ -20,6 +20,10 @@ test('before-bash: коммит и пуш узнаются, коммиты сч�
   assert.deepEqual(classify('git add -A && git commit -m "x"'), { kind: 'git', commit: true, push: false });
   assert.deepEqual(classify('git commit -m "x" && git push origin main'), { kind: 'git', commit: true, push: true });
   assert.deepEqual(classify('git push'), { kind: 'git', commit: false, push: true });
+  assert.deepEqual(classify('gh workflow run ci.yml -R kraineff/minecraft-mods -f publish=stallium'), { kind: 'dispatch', mod: 'stallium' });
+  assert.deepEqual(classify('gh workflow run ci.yml -f "publish=horse-tweaks"'), { kind: 'dispatch', mod: 'horse-tweaks' });
+  assert.equal(classify('gh workflow run ci.yml'), undefined, 'полный прогон без публикации');
+  assert.equal(classify('echo "gh workflow run ci.yml -f publish=stallium"'), undefined);
   assert.equal(classify('echo "git push"'), undefined);
   assert.equal(commitCount('git commit -m a && git commit -m b'), 2);
   assert.equal(commitCount('git add scripts/commit-message.mjs'), 0);

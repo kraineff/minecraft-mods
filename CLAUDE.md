@@ -38,4 +38,4 @@ Fabric-моды для Minecraft 26.x (Java 25, Loom, Fabric API). Каждый 
 
 ## Хуки Claude Code
 
-`.claude/hooks/*.mjs` из `.claude/settings.json` — тонкие обёртки над `scripts/`: правка файла — проверки этого файла и его мода; перед `git commit` — правило сообщения и секреты; перед `git push` с выросшей версией мода — подтверждение пользователя (этот пуш публикует); публикация в обход CI (`scripts/modrinth.mjs upload` / `sync`, `gh release create`) — отказ; завершение хода — `verify-changed`; начало сессии — Node и Java, TODO и что нового у Minecraft (скилл `checks`).
+`.claude/hooks/*.mjs` из `.claude/settings.json` — тонкие обёртки над `scripts/`: правка файла — проверки этого файла и его мода; перед `git commit` — правило сообщения и секреты; перед `git push` с выросшей версией мода и ручным запуском публикации (`gh workflow run … publish=<мод>`) — подтверждение пользователя; публикация в обход CI (`scripts/modrinth.mjs upload` / `sync`, `gh release create`) — отказ; завершение хода — `verify-changed`; начало сессии — Node и Java, TODO и что нового у Minecraft (скилл `checks`).

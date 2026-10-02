@@ -8,7 +8,8 @@ name: ci
 # Публикуются моды с `modrinth_id`, у которых за пуш в main выросла `mod_version`, — и только
 # после зелёных проверок и сборок того же прогона: на Modrinth уходят те самые JAR, что собрал и
 # проверил job build, затем ссылки, описание и галерея проекта, тег `<мод>/<версия>` и GitHub
-# Release с теми же JAR и changelog.
+# Release с JAR и changelog. Ручной запуск с полем publish — порт: текущая версия мода уходит на
+# цели, где её ещё нет (новая версия игры или снапшот); выложенное пропускается.
 
 on:
   push:
@@ -17,7 +18,7 @@ on:
   workflow_dispatch:
     inputs:
       publish:
-        description: Мод, чью версию из репозитория выложить на Modrinth (повтор безопасен); пусто — только полный прогон
+        description: Мод, чью текущую версию выложить на цели, где её ещё нет (порт на новую версию игры); пусто — только полный прогон
         required: false
         type: string
 
@@ -119,11 +120,22 @@ jobs:
           name: jar-${{ matrix.mod }}-${{ matrix.target }}
           path: jars
 
-      # Уже выложенная версия пропускается — повтор прогона безопасен
+      # Уже выложенная под эту цель версия пропускается — повтор прогона и порт безопасны
       - name: Публикация на Modrinth
+        id: upload
         env:
           MODRINTH_TOKEN: ${{ secrets.MODRINTH_TOKEN }}
         run: node scripts/modrinth.mjs upload "$MOD" "$TARGET" "jars/$MOD-$VERSION+$TARGET.jar"
+
+      # В GitHub Release идёт только то, что выложено этим прогоном
+      - name: JAR для GitHub Release
+        if: steps.upload.outputs.uploaded == 'true'
+        uses: actions/upload-artifact@v7
+        with:
+          name: release-${{ matrix.mod }}-${{ matrix.target }}
+          path: jars/${{ matrix.mod }}-${{ matrix.version }}+${{ matrix.target }}.jar
+          if-no-files-found: error
+          retention-days: 30
 
   release:
     needs: [checks, publish]
@@ -156,19 +168,27 @@ jobs:
 
       - uses: actions/download-artifact@v8
         with:
-          pattern: jar-${{ matrix.mod }}-*
+          pattern: release-${{ matrix.mod }}-*
           path: jars
           merge-multiple: true
 
+      # Новой версии — тег и релиз; порт той же версии — JAR дописываются в её релиз
       - name: Тег и GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          shopt -s nullglob
+          jars=(jars/*.jar)
           tag="$MOD/$VERSION"
-          if gh release view "$tag" > /dev/null 2>&1; then
-            echo "Релиз $tag уже есть"
+          if [ ${#jars[@]} -eq 0 ]; then
+            echo "Этим прогоном на Modrinth ничего не выложено — релиз $tag не трогаю"
             exit 0
           fi
-          node scripts/ci.mjs changelog "$MOD" "$VERSION" > "$RUNNER_TEMP/notes.md"
-          gh release create "$tag" jars/*.jar --target "$GITHUB_SHA" --title "$MOD $VERSION" --notes-file "$RUNNER_TEMP/notes.md"
-          echo "Релиз — https://github.com/$GITHUB_REPOSITORY/releases/tag/$tag" >> "$GITHUB_STEP_SUMMARY"
+          if gh release view "$tag" > /dev/null 2>&1; then
+            gh release upload "$tag" "${jars[@]}" --clobber
+            echo "В релиз $tag добавлено: ${jars[*]##*/}" >> "$GITHUB_STEP_SUMMARY"
+          else
+            node scripts/ci.mjs changelog "$MOD" "$VERSION" > "$RUNNER_TEMP/notes.md"
+            gh release create "$tag" "${jars[@]}" --target "$GITHUB_SHA" --title "$MOD $VERSION" --notes-file "$RUNNER_TEMP/notes.md"
+            echo "Релиз — https://github.com/$GITHUB_REPOSITORY/releases/tag/$tag" >> "$GITHUB_STEP_SUMMARY"
+          fi

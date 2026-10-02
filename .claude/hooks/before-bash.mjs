@@ -5,8 +5,9 @@
 //     публикации) — отказ (код 2). Пробный прогон (`--dry-run`) и `modrinth.mjs published`
 //     ничего не пишут;
 //   — `git push` ветки main, после которого CI опубликует моды с выросшей `mod_version`
-//     (`scripts/ci.mjs`, `pendingReleases`), — вопрос пользователю в окне подтверждения:
-//     пуш с бампом и есть релиз;
+//     (`scripts/ci.mjs`, `pendingReleases`), и ручной запуск публикации (`gh workflow run …
+//     publish=<мод>` — порт текущей версии на новые цели) — вопрос пользователю в окне
+//     подтверждения: это и есть релиз;
 //   — `git commit`: сообщение по правилу коммитов (`scripts/commit-message.mjs`), похожее на
 //     секреты во всём, что может попасть в коммит (`check-secrets.mjs --pending`: индекс, правки
 //     и новые файлы — в `git add … && git commit` хук срабатывает раньше `git add`); один
@@ -36,6 +37,8 @@ const PUBLISH = [
 const GIT_COMMIT_SOURCE = `${AT_COMMAND}git\\b(?:\\s+-[cC]\\s+\\S+)*\\s+commit\\b`;
 const GIT_COMMIT = new RegExp(GIT_COMMIT_SOURCE);
 const GIT_PUSH = new RegExp(`${AT_COMMAND}${ENV}git\\b(?:\\s+-[cC]\\s+\\S+)*\\s+push\\b`);
+// Ручной запуск CI с полем publish: `gh workflow run ci.yml -f publish=stallium`
+const DISPATCH = new RegExp(`${AT_COMMAND}${ENV}gh\\s+workflow\\s+run\\b[^;&|\\n]*?\\s(?:-f|-F|--field|--raw-field)[\\s=]+publish=([\\w-]+)`);
 
 /** Сколько `git commit` в команде: путь `scripts/commit-message.mjs` в `git add` — не коммит. */
 export function commitCount(command) {
@@ -43,15 +46,20 @@ export function commitCount(command) {
 }
 
 /**
- * Что делает хук с командой: `{ kind: 'forbidden', what }`, иначе `{ commit, push }` — есть ли в
- * команде `git commit` и `git push`; нечего проверять — `undefined`.
+ * Что делает хук с командой: `{ kind: 'forbidden', what }`, `{ kind: 'dispatch', mod }` — ручной
+ * запуск публикации, иначе `{ kind: 'git', commit, push }` — есть ли в команде `git commit` и
+ * `git push`; нечего проверять — `undefined`.
  */
 export function classify(command) {
-  const commands = withoutHeredocs(command).replace(/"[^"\n]*"|'[^'\n]*'/g, '""');
+  const plain = withoutHeredocs(command);
+  const commands = plain.replace(/"[^"\n]*"|'[^'\n]*'/g, '""');
   for (const [pattern, what, dryRun] of PUBLISH) {
     const match = pattern.exec(commands);
     if (match && !(dryRun && dryRun.test(match[0]))) return { kind: 'forbidden', what };
   }
+  // Значение поля бывает в кавычках (`-f "publish=stallium"`) — ищем по тексту без их снятия
+  const dispatch = DISPATCH.exec(plain.replace(/["']/g, ''));
+  if (dispatch && /gh\s+workflow\s+run/.test(commands)) return { kind: 'dispatch', mod: dispatch[1] };
   const commit = GIT_COMMIT.test(commands);
   const push = GIT_PUSH.test(commands);
   return commit || push ? { kind: 'git', commit, push } : undefined;
@@ -74,6 +82,12 @@ if (isMain(import.meta.url)) {
   const verdict = classify(command);
   if (verdict?.kind === 'forbidden') {
     block(`${verdict.what}: публикует CI по росту mod_version (скилл release).`);
+  }
+  if (verdict?.kind === 'dispatch') {
+    ask(
+      `Ручной запуск CI опубликует на Modrinth ${verdict.mod}: текущая версия уйдёт на цели, где её ещё нет ` +
+        '(скилл release, «Порт»). Публикация согласована?',
+    );
   }
   if (verdict?.commit) {
     process.chdir(ROOT);

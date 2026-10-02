@@ -34,9 +34,9 @@ Loom, Checkstyle и Gradle `--write` не трогает: их обновлен�
 3. Собрать все цели задетых модов: `npm run build -- --all-targets`. Упало — чинить так, чтобы код собирался под **все** цели: различие — в `compat/` (MethodHandle), не ветвлением; gametests тоже собираются в `build`.
 4. Рантайм: MethodHandle и миксины компиляция не проверяет — скриншот-тест под новой целью и под самой старой: `./gradlew -p mods/<мод> runClientGameTest -PtargetMc=<цель>`, снимки в `mods/<мод>/build/run/clientGameTest/screenshots/` — посмотреть. Без gametest — `runClient` и проверка руками пользователем.
 5. Для быстрой сверки сигнатур без запуска — `javap` по JAR игры из кеша Loom: `~/.gradle/caches/fabric-loom/<версия>/minecraft-client-only.jar` (клиент) и `minecraft-common.jar`.
-6. В `[Unreleased]` CHANGELOG каждого мода — `Support for Minecraft <версия>` (для снапшотов — `Support for Minecraft 26.4 snapshots (26.4-snapshot-2)`; при смене снапшота пункт правится, а не дублируется).
-7. Нашлось изменение API — строка в `porting.md` скилла `fabric`.
-8. Коммит `build(targets): …` — сообщение со списком Добавлено / Изменено / Удалено и чем проверено.
+6. Нашлось изменение API — строка в `porting.md` скилла `fabric`.
+7. Коммит `build(targets): …` — сообщение со списком Добавлено / Изменено / Удалено и чем проверено; пуш — CI соберёт моды под новую цель.
+8. Выложить моды на новую цель — порт без подъёма версии: ручной запуск CI с `publish=<мод>` (скилл `release`, «Порт»). В CHANGELOG поддержка новой версии Minecraft не пишется — мод тот же.
 
 ## Правила каталога
 
