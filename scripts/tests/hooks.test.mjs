@@ -7,7 +7,7 @@ import { endsWithQuestion, offerToRecord, todoCounts, unrecordedOffer } from '..
 test('before-bash: публикация — отказ, пробный прогон и упоминание в тексте — мимо', () => {
   assert.equal(classify('node scripts/modrinth.mjs upload stallium 26.3 jars/x.jar').kind, 'forbidden');
   assert.equal(classify('MODRINTH_TOKEN=x node scripts/modrinth.mjs sync stallium').kind, 'forbidden');
-  assert.equal(classify('git push && gh release create stallium/1.1.0').kind, 'forbidden');
+  assert.deepEqual(classify('gh release create stallium/1.0.0 -R kraineff/minecraft-mods --target 780e35d a.jar'), { kind: 'release', tag: 'stallium/1.0.0' });
   assert.equal(classify('node scripts/modrinth.mjs upload stallium 26.3 jars/x.jar --dry-run'), undefined);
   assert.equal(classify('node scripts/modrinth.mjs sync stallium --dry-run'), undefined);
   assert.equal(classify('node scripts/modrinth.mjs published stallium 1.0.0+26.1'), undefined);
