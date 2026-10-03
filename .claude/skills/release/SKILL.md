@@ -50,8 +50,10 @@ description: Релиз мода на Modrinth — когда поднимать
 ```bash
 gh run download <run> -R kraineff/minecraft-mods -p 'release-<мод>-*' -D jars
 node scripts/ci.mjs changelog <мод> <версия> > notes.md
-gh release create <мод>/<версия> -R kraineff/minecraft-mods --target <коммит прогона> --title "<мод> <версия>" --notes-file notes.md jars/*/*.jar
+gh release create <мод>/<версия> -R kraineff/minecraft-mods --target "$(git rev-parse <коммит прогона>)" --title "<мод> <версия>" --notes-file notes.md jars/*/*.jar
 ```
+
+`--target` — полный хеш коммита: короткий GitHub отклоняет (422 «target_commitish is invalid»).
 
 Пробный прогон без записи: `node scripts/modrinth.mjs upload <мод> <цель> mods/<мод>/build/libs/<мод>-x.y.z+<цель>.jar --dry-run` — что уйдёт на Modrinth; `node scripts/modrinth.mjs sync <мод> --dry-run` — что поменяется в проекте.
 
